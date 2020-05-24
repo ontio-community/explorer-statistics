@@ -19,6 +19,8 @@ import static java.math.BigDecimal.ZERO;
  */
 public class AddressAggregate extends AbstractAggregate<AddressAggregate.AddressAggregateKey, AddressDailyAggregation> {
 
+	private BigDecimal previousBalance;
+
 	private BigDecimal balance;
 
 	private int depositTxCount;
@@ -173,6 +175,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		if (this.balance == null) {
 			this.balance = ZERO;
 		}
+		this.previousBalance = this.balance;
 		this.depositTxCount = 0;
 		this.withdrawTxCount = 0;
 		this.depositAmount = ZERO;
@@ -232,6 +235,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		snapshot.setFeeAmount(feeAmount);
 		snapshot.setContractCount(contractCounter.getCount());
 		snapshot.setIsVirtual(context.virtualContracts().contains(key().getTokenContractHash()));
+		snapshot.setPreviousBalance(previousBalance);
 		return Optional.of(snapshot);
 	}
 
@@ -259,6 +263,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		snapshot.setFeeAmount(total.feeAmount);
 		snapshot.setContractCount(0);
 		snapshot.setIsVirtual(context.virtualContracts().contains(key().getTokenContractHash()));
+		snapshot.setPreviousBalance(previousBalance);
 		return Optional.of(snapshot);
 	}
 

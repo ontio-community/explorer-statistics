@@ -84,4 +84,63 @@
         contract_count = values(contract_count),
         is_virtual = values(is_virtual)
     </insert>
+
+    <insert id="reSync">
+        INSERT INTO tbl_address_daily_aggregation
+        (address,
+        token_contract_hash,
+        date_id,
+        balance,
+        usd_price,
+        max_balance,
+        min_balance,
+        deposit_tx_count,
+        withdraw_tx_count,
+        deposit_amount,
+        withdraw_amount,
+        deposit_address_count,
+        withdraw_address_count,
+        tx_address_count,
+        fee_amount,
+        contract_count,
+        is_virtual)
+        VALUES (#{address},
+        #{tokenContractHash},
+        #{dateId},
+        #{balance},
+        #{usdPrice},
+        #{maxBalance},
+        #{minBalance},
+        #{depositTxCount},
+        #{withdrawTxCount},
+        #{depositAmount},
+        #{withdrawAmount},
+        #{depositAddressCount},
+        #{withdrawAddressCount},
+        #{txAddressCount},
+        #{feeAmount},
+        #{contractCount},
+        #{isVirtual})
+        ON DUPLICATE KEY UPDATE
+        usd_price = #{usdPrice},
+        <if test="dateId > 0">
+            balance = balance + #{balance} - #{previousBalance},
+            max_balance = max_balance + #{balance} - #{previousBalance},
+            min_balance = min_balance + #{balance} - #{previousBalance},
+        </if>
+        deposit_tx_count = deposit_tx_count + #{depositTxCount},
+        withdraw_tx_count = withdraw_tx_count + #{withdrawTxCount},
+        deposit_amount = deposit_amount + #{depositAmount},
+        withdraw_amount = withdraw_amount + #{withdrawAmount},
+        fee_amount = fee_amount + #{feeAmount},
+        is_virtual = #{isVirtual}
+    </insert>
+
+    <update id="reSyncBalance">
+        UPDATE tbl_address_daily_aggregation
+        SET balance     = balance + #{balance} - #{previousBalance},
+            max_balance = max_balance + #{balance} - #{previousBalance},
+            min_balance = min_balance + #{balance} - #{previousBalance}
+        WHERE date_id &lt;= 0 OR date_id > #{dateId}
+    </update>
 </mapper>

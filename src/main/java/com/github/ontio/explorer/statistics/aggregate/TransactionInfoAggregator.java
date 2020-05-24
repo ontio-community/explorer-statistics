@@ -7,6 +7,7 @@ import com.github.ontio.explorer.statistics.aggregate.model.Aggregate;
 import com.github.ontio.explorer.statistics.aggregate.model.AggregateKey;
 import com.github.ontio.explorer.statistics.aggregate.model.AggregateSnapshot;
 import com.github.ontio.explorer.statistics.aggregate.model.ContractAggregate.ContractAggregateKey;
+import com.github.ontio.explorer.statistics.aggregate.model.ReSync;
 import com.github.ontio.explorer.statistics.aggregate.model.StagingAggregateKeys;
 import com.github.ontio.explorer.statistics.aggregate.model.Tick;
 import com.github.ontio.explorer.statistics.aggregate.model.TokenAggregate.TokenAggregateKey;
@@ -65,7 +66,7 @@ public class TransactionInfoAggregator extends DisruptorEventPublisherAdapter {
 
 	@Override
 	protected Collection<Class<?>> eventTypes() {
-		return Arrays.asList(TransactionInfo.class, StagingAggregateKeys.class, Tick.class);
+		return Arrays.asList(TransactionInfo.class, StagingAggregateKeys.class, Tick.class, ReSync.Begin.class, ReSync.End.class);
 	}
 
 	@Override
@@ -79,6 +80,10 @@ public class TransactionInfoAggregator extends DisruptorEventPublisherAdapter {
 			keys.getAggregateKeys().forEach(this.stagingAggregates::remove);
 		} else if (event instanceof Tick) {
 			flushTotalAggregations();
+		} else if (event instanceof ReSync.Begin) {
+			beginReSync((ReSync.Begin) event);
+		} else if (event instanceof ReSync.End) {
+			endReSync((ReSync.End) event);
 		}
 	}
 
@@ -111,19 +116,25 @@ public class TransactionInfoAggregator extends DisruptorEventPublisherAdapter {
 
 	private void sinkSnapshot() {
 		if (log.isInfoEnabled()) {
-			log.info("sinking aggregations of date {}", DateIdUtil.toDateString(context.getDateId()));
+			String date = DateIdUtil.toDateString(context.getDateId());
+			if (context.isReSyncing()) {
+				log.info("sinking re-synced contract {} aggregations of date {}", context.getReSync().getContractHash(), date);
+			} else {
+				log.info("sinking aggregations of date {}", date);
+			}
 		}
+
 		currentAggregates.forEach((key, aggregate) -> stagingAggregates.put(key, aggregate));
-		AggregateSnapshot snapshot = new AggregateSnapshot(context.getDateId(), context.getBlockHeight());
+		AggregateSnapshot snapshot = new AggregateSnapshot(context.getDateId(), context.getBlockHeight(), context.getReSync());
 		snapshot.append(currentAggregates.values());
-		currentAggregates = new HashMap<>();
+		currentAggregates.clear();
 		aggregationSinker.sink(snapshot);
 	}
 
 	private Aggregate<?, ?> getAggregate(AggregateKey key) {
 		return currentAggregates.computeIfAbsent(key, k -> {
 			Aggregate<?, ?> aggregate = stagingAggregates.containsKey(k) ? stagingAggregates.remove(k) : baselineAggregates.get(k);
-			aggregate.rebase();// TODO tuning
+			aggregate.rebase(context.isReSyncing());
 			return aggregate;
 		});
 	}
@@ -182,6 +193,25 @@ public class TransactionInfoAggregator extends DisruptorEventPublisherAdapter {
 			snapshot.append(currentAggregates.values());
 			aggregationSinker.sink(snapshot);
 		}
+	}
+
+	private void beginReSync(ReSync.Begin begin) {
+		context.beginReSync(begin);
+		aggregationSinker.publish(begin);
+		purge();
+	}
+
+	private void endReSync(ReSync.End end) {
+		sinkSnapshot();
+		aggregationSinker.publish(end);
+		context.endReSync(end);
+		purge();
+	}
+
+	private void purge() {
+		currentAggregates.clear();
+		stagingAggregates.clear();
+		baselineAggregates.invalidateAll();
 	}
 
 	@PostConstruct

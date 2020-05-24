@@ -62,4 +62,42 @@
         contract_count = values(contract_count),
         is_virtual=values(is_virtual)
     </insert>
+
+    <insert id="batchReSync">
+        INSERT INTO tbl_contract_daily_aggregation
+        (
+        contract_hash,
+        token_contract_hash,
+        date_id,
+        tx_count,
+        tx_amount,
+        deposit_address_count,
+        withdraw_address_count,
+        tx_address_count,
+        fee_amount,
+        contract_count,
+        is_virtual
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.contractHash},
+            #{item.tokenContractHash},
+            #{item.dateId},
+            #{item.txCount},
+            #{item.txAmount},
+            #{item.depositAddressCount},
+            #{item.withdrawAddressCount},
+            #{item.txAddressCount},
+            #{item.feeAmount},
+            #{item.contractCount},
+            #{item.isVirtual}
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        tx_count=tx_count + values(tx_count),
+        tx_amount=tx_amount + values(tx_amount),
+        fee_amount=fee_amount + values(fee_amount),
+        is_virtual=values(is_virtual)
+    </insert>
 </mapper>

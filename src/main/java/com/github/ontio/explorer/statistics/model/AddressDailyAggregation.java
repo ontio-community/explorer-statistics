@@ -110,6 +110,8 @@ public class AddressDailyAggregation {
     @Column(name = "update_time")
     private Date updateTime;
 
+    private transient BigDecimal previousBalance;
+
     /**
      * 获取地址
      *
@@ -429,4 +431,13 @@ public class AddressDailyAggregation {
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
     }
+
+    public BigDecimal getPreviousBalance() {
+        return previousBalance;
+    }
+
+    public void setPreviousBalance(BigDecimal previousBalance) {
+        this.previousBalance = previousBalance;
+    }
+
 }

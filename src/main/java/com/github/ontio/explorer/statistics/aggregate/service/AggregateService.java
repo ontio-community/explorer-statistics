@@ -6,13 +6,16 @@ import com.github.ontio.explorer.statistics.aggregate.model.Aggregate;
 import com.github.ontio.explorer.statistics.aggregate.model.AggregateKey;
 import com.github.ontio.explorer.statistics.aggregate.model.AggregateSnapshot;
 import com.github.ontio.explorer.statistics.aggregate.model.ContractAggregate;
+import com.github.ontio.explorer.statistics.aggregate.model.ReSync;
 import com.github.ontio.explorer.statistics.aggregate.model.TokenAggregate;
 import com.github.ontio.explorer.statistics.aggregate.model.TotalAggregationSnapshot;
 import com.github.ontio.explorer.statistics.mapper.AddressDailyAggregationMapper;
 import com.github.ontio.explorer.statistics.mapper.ContractDailyAggregationMapper;
+import com.github.ontio.explorer.statistics.mapper.ContractMapper;
 import com.github.ontio.explorer.statistics.mapper.CurrentMapper;
 import com.github.ontio.explorer.statistics.mapper.TokenDailyAggregationMapper;
 import com.github.ontio.explorer.statistics.model.AddressDailyAggregation;
+import com.github.ontio.explorer.statistics.model.Contract;
 import com.github.ontio.explorer.statistics.model.ContractDailyAggregation;
 import com.github.ontio.explorer.statistics.model.TokenDailyAggregation;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +38,8 @@ public class AggregateService {
 	private final AggregateContext context;
 
 	private final CurrentMapper currentMapper;
+
+	private final ContractMapper contractMapper;
 
 	private final AddressDailyAggregationMapper addressDailyAggregationMapper;
 
@@ -119,10 +124,22 @@ public class AggregateService {
 
 	@Transactional
 	public void saveAggregateSnapshot(AggregateSnapshot snapshot) {
-		saveAddressAggregations(snapshot.getAddressAggregations());
-		saveTokenAggregations(snapshot.getTokenAggregations());
-		saveContractAggregations(snapshot.getContractAggregations());
-		currentMapper.saveLastStatBlockHeight(snapshot.getLastBlockHeight());
+		ReSync reSync = snapshot.getReSync();
+
+		if (reSync == null) {
+			saveAddressAggregations(snapshot.getAddressAggregations());
+			saveTokenAggregations(snapshot.getTokenAggregations());
+			saveContractAggregations(snapshot.getContractAggregations());
+			currentMapper.saveLastStatBlockHeight(snapshot.getLastBlockHeight());
+		} else {
+			reSyncAddressAggregations(snapshot.getAddressAggregations());
+			reSyncTokenAggregations(snapshot.getTokenAggregations());
+			reSyncContractAggregations(snapshot.getContractAggregations());
+			Contract contract = reSync.contractForUpdate();
+			contract.setReSyncStatBlock(snapshot.getLastBlockHeight());
+			contractMapper.updateByPrimaryKeySelective(contract);
+		}
+
 	}
 
 	@Transactional
@@ -158,6 +175,37 @@ public class AggregateService {
 				int from = DATABASE_BATCH_SIZE * i;
 				int to = Math.min(DATABASE_BATCH_SIZE * (i + 1), contractAggregations.size());
 				contractDailyAggregationMapper.batchSave(contractAggregations.subList(from, to));
+			}
+		}
+	}
+
+	private void reSyncAddressAggregations(List<AddressDailyAggregation> addressAggregations) {
+		if (addressAggregations.size() > 0) {
+			addressAggregations.forEach(aggregation -> {
+				addressDailyAggregationMapper.reSync(aggregation);
+				if (aggregation.getDateId() > 0 && !aggregation.getIsVirtual()) {
+					addressDailyAggregationMapper.reSyncBalance(aggregation);
+				}
+			});
+		}
+	}
+
+	private void reSyncTokenAggregations(List<TokenDailyAggregation> tokenAggregations) {
+		if (tokenAggregations.size() > 0) {
+			for (int i = 0; (DATABASE_BATCH_SIZE * i) < tokenAggregations.size(); i++) {
+				int from = DATABASE_BATCH_SIZE * i;
+				int to = Math.min(DATABASE_BATCH_SIZE * (i + 1), tokenAggregations.size());
+				tokenDailyAggregationMapper.batchReSync(tokenAggregations.subList(from, to));
+			}
+		}
+	}
+
+	private void reSyncContractAggregations(List<ContractDailyAggregation> contractAggregations) {
+		if (contractAggregations.size() > 0) {
+			for (int i = 0; (DATABASE_BATCH_SIZE * i) < contractAggregations.size(); i++) {
+				int from = DATABASE_BATCH_SIZE * i;
+				int to = Math.min(DATABASE_BATCH_SIZE * (i + 1), contractAggregations.size());
+				contractDailyAggregationMapper.batchReSync(contractAggregations.subList(from, to));
 			}
 		}
 	}

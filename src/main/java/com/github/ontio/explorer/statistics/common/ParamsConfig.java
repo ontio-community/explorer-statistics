@@ -30,11 +30,13 @@ public class ParamsConfig {
 
     private String ongContractHash = "0200000000000000000000000000000000000000";
 
-    private double aggregationRateLimit = 200;
+    private double aggregationRateLimit = 300;
 
     private int rankingLevel = 10;
 
     private int totalAggregationDateId;
+
+    private boolean reSyncEnabled = true;
 
     public interface Field {
 

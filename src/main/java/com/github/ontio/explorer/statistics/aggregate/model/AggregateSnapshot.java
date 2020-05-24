@@ -23,6 +23,8 @@ public class AggregateSnapshot implements Serializable {
 
 	private final int lastBlockHeight;
 
+	private final ReSync reSync;
+
 	private Set<AggregateKey> aggregateKeys = new HashSet<>();
 
 	private List<AddressDailyAggregation> addressAggregations = new ArrayList<>(1024);

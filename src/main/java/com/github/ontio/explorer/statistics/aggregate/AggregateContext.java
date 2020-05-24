@@ -3,6 +3,7 @@ package com.github.ontio.explorer.statistics.aggregate;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.ontio.explorer.statistics.aggregate.model.ContractType;
+import com.github.ontio.explorer.statistics.aggregate.model.ReSync;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.mapper.ContractMapper;
 import lombok.Getter;
@@ -61,6 +62,9 @@ public class AggregateContext {
 	@Setter
 	private int blockHeight;
 
+	@Getter
+	private ReSync reSync;
+
 	private final ContractMapper contractMapper;
 
 	@Getter
@@ -110,6 +114,26 @@ public class AggregateContext {
 
 	public boolean isGovernor(String address) {
 		return GOVERNOR_ADDRESS.equals(address);
+	}
+
+	public void beginReSync(ReSync.Begin begin) {
+		if (this.reSync != null) {
+			throw new IllegalStateException("previous re-sync has not been finished!");
+		}
+		this.dateId = 0;
+		this.blockHeight = 0;
+		this.reSync = begin.getReSync();
+	}
+
+	public void endReSync(ReSync.End end) {
+		if (this.reSync != end.getReSync()) {
+			throw new IllegalStateException("stale re-sync status");
+		}
+		this.reSync = null;
+	}
+
+	public boolean isReSyncing() {
+		return reSync != null;
 	}
 
 	@PostConstruct
