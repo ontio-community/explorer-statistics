@@ -214,7 +214,7 @@ public class AggregateSourceProducer {
 					.andGreaterThan("blockHeight", beginBlockHeight)
 					.andLessThanOrEqualTo("blockHeight", Math.min(beginBlockHeight + BLOCK_BATCH_SIZE, endBlockHeight))
 					.andEqualTo("eventType", 3)
-					.andEqualTo("calledContractHash", contractHash);
+					.andEqualTo("contractHash", contractHash);
 			example.orderBy("blockHeight").orderBy("blockIndex").orderBy("txIndex");
 			List<TxDetail> details = txDetailMapper.selectByExample(example);
 
