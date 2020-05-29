@@ -125,44 +125,62 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		String to = transactionInfo.getToAddress();
 
 		contractCounter.count(transactionInfo.getContractHash());
-		if (transactionInfo.getFromAddress().equals(key().getAddress())) {
-			if (isTxHashChanged(transactionInfo)) {
-				withdrawTxCount++;
-				total.withdrawTxCount++;
-			}
-
-			withdrawAmount = withdrawAmount.add(amount);
-			withdrawAddressCounter.count(to);
-			txAddressCounter.count(to);
-			total.withdrawAmount = total.withdrawAmount.add(amount);
-
-			if (transactionInfo.isSelfTransaction()) {
-				depositAmount = depositAmount.add(amount);
-				depositAddressCounter.count(from);
-				total.depositAmount = total.depositAmount.add(amount);
-			} else {
-				balance = balance.subtract(amount);
-				total.balance = total.balance.subtract(amount);
-			}
-
-			if (context.virtualContracts().contains(key().getTokenContractHash())) {
+		if (context.virtualContracts().contains(key().getTokenContractHash())) {
+			if (from.equals(key().getAddress())) {
+				if (isTxHashChanged(transactionInfo)) {
+					withdrawTxCount++;
+					total.withdrawTxCount++;
+				}
+				withdrawAddressCounter.count(to);
+				txAddressCounter.count(to);
+				if (transactionInfo.isSelfTransaction()) {
+					depositAddressCounter.count(from);
+				}
 				feeAmount = feeAmount.add(transactionInfo.getFee());
 				total.feeAmount = total.feeAmount.add(transactionInfo.getFee());
+			} else if (to.equals(key().getAddress())) {
+				if (isTxHashChanged(transactionInfo)) {
+					depositTxCount++;
+					total.depositTxCount++;
+				}
+				depositAddressCounter.count(from);
+				txAddressCounter.count(from);
 			}
-		} else if (transactionInfo.getToAddress().equals(key().getAddress())) {
-			if (isTxHashChanged(transactionInfo)) {
-				depositTxCount++;
-				total.depositTxCount++;
+		} else {
+			if (from.equals(key().getAddress())) {
+				if (isTxHashChanged(transactionInfo)) {
+					withdrawTxCount++;
+					total.withdrawTxCount++;
+				}
+
+				withdrawAmount = withdrawAmount.add(amount);
+				withdrawAddressCounter.count(to);
+				txAddressCounter.count(to);
+				total.withdrawAmount = total.withdrawAmount.add(amount);
+
+				if (transactionInfo.isSelfTransaction()) {
+					depositAmount = depositAmount.add(amount);
+					depositAddressCounter.count(from);
+					total.depositAmount = total.depositAmount.add(amount);
+				} else {
+					balance = balance.subtract(amount);
+					total.balance = total.balance.subtract(amount);
+				}
+			} else if (to.equals(key().getAddress())) {
+				if (isTxHashChanged(transactionInfo)) {
+					depositTxCount++;
+					total.depositTxCount++;
+				}
+				balance = balance.add(amount);
+				depositAmount = depositAmount.add(amount);
+				depositAddressCounter.count(from);
+				txAddressCounter.count(from);
+				total.balance = total.balance.add(amount);
+				total.depositAmount = total.depositAmount.add(amount);
 			}
-			balance = balance.add(amount);
-			depositAmount = depositAmount.add(amount);
-			depositAddressCounter.count(from);
-			txAddressCounter.count(from);
-			total.balance = total.balance.add(amount);
-			total.depositAmount = total.depositAmount.add(amount);
+			balanceRanker.rank(balance);
+			total.balanceRanker.rank(total.balance);
 		}
-		balanceRanker.rank(balance);
-		total.balanceRanker.rank(total.balance);
 		changed = true;
 		total.changed = true;
 	}
