@@ -151,7 +151,7 @@ public class AggregateSourceProducer {
 		reSyncing = new AtomicBoolean();
 	}
 
-	@Scheduled(initialDelay = 1000 * 5, fixedRate = 1000 * 60 * 60)
+	@Scheduled(initialDelay = 1000 * 5, fixedRate = 1000 * 60 * 10)
 	public void triggerReSync() {
 		if (config.isReSyncEnabled()) {
 			Example example = new Example(Contract.class);
