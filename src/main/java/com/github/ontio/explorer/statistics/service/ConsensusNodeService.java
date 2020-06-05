@@ -258,6 +258,13 @@ public class ConsensusNodeService {
             log.error("Inserting {} into tbl_node_info_on_chain failed.", nodes.toString());
             log.error("Updating tbl_node_info_on_chain failed: {}", e.getMessage());
         }
+        // sync tbl_node_info_off_chain
+        try {
+            result = nodeInfoOffChainMapper.syncWithOnChainNodes();
+            log.info("sync tbl_node_info_off_chain: insert {} nodes info.", result);
+        } catch (Exception e) {
+            log.error("Updating tbl_node_info_off_chain failed: {}", e.getMessage());
+        }
     }
 
     private List<NodeInfoOnChain> matchNodeName(List<NodeInfoOnChain> nodeInfos) {
