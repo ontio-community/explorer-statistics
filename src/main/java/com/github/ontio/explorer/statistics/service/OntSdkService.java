@@ -1,6 +1,7 @@
 package com.github.ontio.explorer.statistics.service;
 
 import com.github.ontio.OntSdk;
+import com.github.ontio.core.block.Block;
 import com.github.ontio.core.governance.Configuration;
 import com.github.ontio.core.governance.GovernanceView;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
@@ -79,6 +80,18 @@ public class OntSdkService {
             switchSyncNode();
             log.info("Getting block height again");
             return getBlockHeight();
+        }
+    }
+
+    int getBlockTimeByHeight(int height) {
+        try {
+            Block block = sdk.getRestful().getBlock(height);
+            return block.timestamp;
+        } catch (ConnectorException | IOException | SDKException e) {
+            log.warn("Getting block height failed: {}", e.getMessage());
+            switchSyncNode();
+            log.info("Getting block height again");
+            return getBlockTimeByHeight(height);
         }
     }
 

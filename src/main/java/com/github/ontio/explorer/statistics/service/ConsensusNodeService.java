@@ -22,12 +22,14 @@ import com.github.ontio.core.governance.PeerPoolItem;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.mapper.*;
 import com.github.ontio.explorer.statistics.model.NodeInfoOnChain;
+import com.github.ontio.explorer.statistics.model.NodeOverviewHistory;
 import com.github.ontio.explorer.statistics.model.NodeRankChange;
 import com.github.ontio.explorer.statistics.model.NodeRankHistory;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -52,6 +54,8 @@ public class ConsensusNodeService {
 
     private NodeInfoOffChainMapper nodeInfoOffChainMapper;
 
+    private NodeOverviewHistoryMapper nodeOverviewHistoryMapper;
+
     private OntSdkService ontSdkService;
 
     @Autowired
@@ -62,7 +66,8 @@ public class ConsensusNodeService {
                                 NodeRankChangeMapper nodeRankChangeMapper,
                                 NodeInfoOnChainMapper nodeInfoOnChainMapper,
                                 NodeRankHistoryMapper nodeRankHistoryMapper,
-                                NodeInfoOffChainMapper nodeInfoOffChainMapper) {
+                                NodeInfoOffChainMapper nodeInfoOffChainMapper,
+                                NodeOverviewHistoryMapper nodeOverviewHistoryMapper) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -71,6 +76,7 @@ public class ConsensusNodeService {
         this.nodeInfoOnChainMapper = nodeInfoOnChainMapper;
         this.nodeRankHistoryMapper = nodeRankHistoryMapper;
         this.nodeInfoOffChainMapper = nodeInfoOffChainMapper;
+        this.nodeOverviewHistoryMapper = nodeOverviewHistoryMapper;
     }
 
     public void updateBlockCountToNextRound() {
@@ -83,6 +89,50 @@ public class ConsensusNodeService {
             log.info("Updating block count to next round with value {}", blockCntToNxtRound);
         } catch (Exception e) {
             log.warn("Updating block count to next round with value {} failed: {}", blockCntToNxtRound, e.getMessage());
+        }
+        // update node round history
+        long roundStartBlock = getRoundStartBlock();
+        if (roundStartBlock < 0) {
+            return;
+        }
+        int stakingChangeCount = ontSdkService.getStakingChangeCount();
+        updateBlkRndHistory(roundStartBlock, stakingChangeCount);
+    }
+
+    private void updateBlkRndHistory(long roundStartBlock, int stakingChangeCount) {
+        List<NodeOverviewHistory> historyList = nodeOverviewHistoryMapper.checkHistoryExist();
+        int size = historyList.size();
+        if (size < 10) {
+            Long maintainEndBlk = roundStartBlock;
+            maintainBlkRndHistory(size, maintainEndBlk, stakingChangeCount);
+        }
+        long roundEndBlock = roundStartBlock + stakingChangeCount;
+        NodeOverviewHistory overviewHistory = new NodeOverviewHistory();
+        overviewHistory.setRndStartBlk(roundStartBlock);
+        List<NodeOverviewHistory> list = nodeOverviewHistoryMapper.select(overviewHistory);
+        if (CollectionUtils.isEmpty(list)) {
+            int roundStartTime = ontSdkService.getBlockTimeByHeight((int) roundStartBlock);
+            overviewHistory.setRndStartTime(roundStartTime);
+            overviewHistory.setRndEndBlk(roundEndBlock);
+            nodeOverviewHistoryMapper.updateRnkEndTime(roundStartBlock, roundStartTime);
+            nodeOverviewHistoryMapper.insertSelective(overviewHistory);
+        }
+    }
+
+    private void maintainBlkRndHistory(int size, long maintainEndBlk, int stakingChangeCount) {
+        int loop = 10 - size;
+        for (int i = 0; i < loop; i++) {
+            int times = loop - i;
+            long roundStartBlock = maintainEndBlk - stakingChangeCount * times;
+            long roundEndBlock = roundStartBlock + stakingChangeCount;
+            int roundStartTime = ontSdkService.getBlockTimeByHeight((int) roundStartBlock);
+            int roundEndTime = ontSdkService.getBlockTimeByHeight((int) roundEndBlock);
+            NodeOverviewHistory history = new NodeOverviewHistory();
+            history.setRndStartBlk(roundStartBlock);
+            history.setRndEndBlk(roundEndBlock);
+            history.setRndStartTime(roundStartTime);
+            history.setRndEndTime(roundEndTime);
+            nodeOverviewHistoryMapper.insertSelective(history);
         }
     }
 
@@ -177,6 +227,15 @@ public class ConsensusNodeService {
         }
         long blockHeight = ontSdkService.getBlockHeight();
         return paramsConfig.getMaxStakingChangeCount() - (blockHeight - view.height);
+    }
+
+    private long getRoundStartBlock() {
+        GovernanceView view = ontSdkService.getGovernanceView();
+        if (view == null) {
+            log.warn("Getting governance view in consensus node service failed:");
+            return -1;
+        }
+        return view.height;
     }
 
     public void updateConsensusNodeInfo() {
