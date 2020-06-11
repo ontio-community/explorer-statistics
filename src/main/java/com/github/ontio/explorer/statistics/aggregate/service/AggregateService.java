@@ -73,7 +73,8 @@ public class AggregateService {
 		example = new Example(AddressDailyAggregation.class);
 		example.and().andEqualTo("address", key.getAddress())
 				.andEqualTo("tokenContractHash", key.getTokenContractHash())
-				.andEqualTo("dateId", context.getConfig().getTotalAggregationDateId());
+				.andEqualTo("dateId", key.isForCalledContractHash() ? AddressAggregate.CALLED_CONTRACT_HASH_AGGREGATION_DATE_ID :
+						context.getConfig().getTotalAggregationDateId());
 		AddressDailyAggregation total = addressDailyAggregationMapper.selectOneByExample(example);
 
 		AddressAggregate aggregate = new AddressAggregate(context, key);

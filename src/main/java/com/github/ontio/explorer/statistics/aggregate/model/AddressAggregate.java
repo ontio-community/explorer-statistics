@@ -4,6 +4,7 @@ import com.github.ontio.explorer.statistics.aggregate.AggregateContext;
 import com.github.ontio.explorer.statistics.aggregate.support.BigDecimalRanker;
 import com.github.ontio.explorer.statistics.aggregate.support.UniqueCounter;
 import com.github.ontio.explorer.statistics.model.AddressDailyAggregation;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,8 @@ import static java.math.BigDecimal.ZERO;
  * @author LiuQi
  */
 public class AddressAggregate extends AbstractAggregate<AddressAggregate.AddressAggregateKey, AddressDailyAggregation> {
+
+	public static final int CALLED_CONTRACT_HASH_AGGREGATION_DATE_ID = Integer.MIN_VALUE;
 
 	private BigDecimal previousBalance;
 
@@ -57,7 +60,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		String to = transactionInfo.getToAddress();
 
 		contractCounter.count(transactionInfo.getContractHash());
-		if (context.virtualContracts().contains(key().getTokenContractHash())) {
+		if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForCalledContractHash()) {
 			if (from.equals(key().getAddress())) {
 				if (isTxHashChanged(transactionInfo)) {
 					withdrawTxCount++;
@@ -125,7 +128,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		String to = transactionInfo.getToAddress();
 
 		contractCounter.count(transactionInfo.getContractHash());
-		if (context.virtualContracts().contains(key().getTokenContractHash())) {
+		if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForCalledContractHash()) {
 			if (from.equals(key().getAddress())) {
 				if (isTxHashChanged(transactionInfo)) {
 					withdrawTxCount++;
@@ -231,7 +234,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 
 	@Override
 	protected Optional<AddressDailyAggregation> snapshot() {
-		if (!changed) {
+		if (!changed || key().isForCalledContractHash()) {
 			return Optional.empty();
 		}
 
@@ -266,7 +269,11 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		AddressDailyAggregation snapshot = new AddressDailyAggregation();
 		snapshot.setAddress(key().getAddress());
 		snapshot.setTokenContractHash(key().getTokenContractHash());
-		snapshot.setDateId(context.getConfig().getTotalAggregationDateId());
+		if (key().isForCalledContractHash()) {
+			snapshot.setDateId(CALLED_CONTRACT_HASH_AGGREGATION_DATE_ID);
+		} else {
+			snapshot.setDateId(context.getConfig().getTotalAggregationDateId());
+		}
 		snapshot.setBalance(total.balance);
 		snapshot.setUsdPrice(ZERO); // TODO 0 for now
 		snapshot.setMaxBalance(total.balanceRanker.getMax());
@@ -286,12 +293,14 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 	}
 
 	@RequiredArgsConstructor
+	@AllArgsConstructor
 	@EqualsAndHashCode
 	@Getter
 	@ToString
 	public static class AddressAggregateKey implements AggregateKey {
 		private final String address;
 		private final String tokenContractHash;
+		private boolean forCalledContractHash;
 	}
 
 	private static class TotalAggregate {

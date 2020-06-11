@@ -206,31 +206,34 @@ public class AggregateSourceProducer {
 		int beginBlockHeight = Math.max(fromBlock - 1, contract.getReSyncStatBlock());
 		int endBlockHeight = Math.min(toBlock, startBlockHeight);
 
-		log.info("start re-sync of contract {} from {} to {}", contractHash, beginBlockHeight, endBlockHeight);
+		if (beginBlockHeight < endBlockHeight) {
+			log.info("start re-sync of contract {} from {} to {}", contractHash, beginBlockHeight, endBlockHeight);
+			while (beginBlockHeight < endBlockHeight) {
+				Example example = new Example(TxDetail.class);
+				example.and()
+						.andGreaterThan("blockHeight", beginBlockHeight)
+						.andLessThanOrEqualTo("blockHeight", Math.min(beginBlockHeight + BLOCK_BATCH_SIZE, endBlockHeight))
+						.andEqualTo("eventType", 3)
+						.andEqualTo("calledContractHash", contractHash);
+				example.orderBy("blockHeight").orderBy("blockIndex").orderBy("txIndex");
+				List<TxDetail> details = txDetailMapper.selectByExample(example);
 
-		while (beginBlockHeight < endBlockHeight) {
-			Example example = new Example(TxDetail.class);
-			example.and()
-					.andGreaterThan("blockHeight", beginBlockHeight)
-					.andLessThanOrEqualTo("blockHeight", Math.min(beginBlockHeight + BLOCK_BATCH_SIZE, endBlockHeight))
-					.andEqualTo("eventType", 3)
-					.andEqualTo("contractHash", contractHash);
-			example.orderBy("blockHeight").orderBy("blockIndex").orderBy("txIndex");
-			List<TxDetail> details = txDetailMapper.selectByExample(example);
-
-			if (details == null || details.isEmpty()) {
-				beginBlockHeight += BLOCK_BATCH_SIZE;
-				continue;
-			}
-
-			for (TxDetail detail : details) {
-				if (rateLimiter != null) {
-					rateLimiter.acquire();
+				if (details == null || details.isEmpty()) {
+					beginBlockHeight += BLOCK_BATCH_SIZE;
+					continue;
 				}
-				TransactionInfo transactionInfo = TransactionInfo.wrap(detail);
-				dispatcher.dispatch(transactionInfo);
-				beginBlockHeight = detail.getBlockHeight();
+
+				for (TxDetail detail : details) {
+					if (rateLimiter != null) {
+						rateLimiter.acquire();
+					}
+					TransactionInfo transactionInfo = TransactionInfo.wrap(detail);
+					dispatcher.dispatch(transactionInfo);
+					beginBlockHeight = detail.getBlockHeight();
+				}
 			}
+		} else {
+			log.info("all transactions of {} haven't been aggregated, no need to re-sync", contractHash);
 		}
 
 		dispatcher.dispatch(reSync.end());

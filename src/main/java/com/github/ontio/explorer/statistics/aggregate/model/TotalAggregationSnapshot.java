@@ -37,7 +37,11 @@ public class TotalAggregationSnapshot implements Serializable {
 
 	private void append(AddressAggregate aggregate) {
 		aggregate.snapshot(true).ifPresent(aggregation -> {
-			aggregation.setDateId(TOTAL_SNAPSHOT_DATE_ID);
+			if (aggregate.key().isForCalledContractHash()) {
+				aggregation.setDateId(AddressAggregate.CALLED_CONTRACT_HASH_AGGREGATION_DATE_ID);
+			} else {
+				aggregation.setDateId(TOTAL_SNAPSHOT_DATE_ID);
+			}
 			addressAggregations.add(aggregation);
 		});
 	}
