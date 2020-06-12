@@ -28,8 +28,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.github.ontio.explorer.statistics.aggregate.AggregateContext.VIRTUAL_CONTRACT_ALL;
 import static com.github.ontio.explorer.statistics.aggregate.AggregateContext.VIRTUAL_CONTRACT_NATIVE;
@@ -159,9 +161,10 @@ public class TransactionInfoAggregator extends DisruptorEventPublisherAdapter {
 		tokenContractHashes.forEach(hash -> addresses.forEach(address -> keys.add(new AddressAggregateKey(address, hash))));
 
 		if (!context.isReSyncing()) {
-			// special aggregation for tx count of calledContractHash
-			String calledContractHash = transactionInfo.getCalledContractHash();
-			addresses.forEach(address -> keys.add(new AddressAggregateKey(address, calledContractHash, true)));
+			// special aggregation for tx count of contractHash and calledContractHash
+			Set<String> contractHashes = new HashSet<>(Arrays.asList(transactionInfo.getContractHash(),
+					transactionInfo.getCalledContractHash()));
+			contractHashes.forEach(hash -> addresses.forEach(address -> keys.add(new AddressAggregateKey(address, hash, true))));
 		}
 
 		return keys;

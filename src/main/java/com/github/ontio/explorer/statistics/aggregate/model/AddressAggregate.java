@@ -20,7 +20,7 @@ import static java.math.BigDecimal.ZERO;
  */
 public class AddressAggregate extends AbstractAggregate<AddressAggregate.AddressAggregateKey, AddressDailyAggregation> {
 
-	public static final int CALLED_CONTRACT_HASH_AGGREGATION_DATE_ID = Integer.MIN_VALUE;
+	public static final int OEP_AGGREGATION_DATE_ID = Integer.MIN_VALUE;
 
 	private BigDecimal previousBalance;
 
@@ -60,7 +60,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		String to = transactionInfo.getToAddress();
 
 		contractCounter.count(transactionInfo.getContractHash());
-		if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForCalledContractHash()) {
+		if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForOep()) {
 			if (from.equals(key().getAddress())) {
 				if (isTxHashChanged(transactionInfo)) {
 					withdrawTxCount++;
@@ -128,7 +128,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		String to = transactionInfo.getToAddress();
 
 		contractCounter.count(transactionInfo.getContractHash());
-		if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForCalledContractHash()) {
+		if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForOep()) {
 			if (from.equals(key().getAddress())) {
 				if (isTxHashChanged(transactionInfo)) {
 					withdrawTxCount++;
@@ -234,7 +234,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 
 	@Override
 	protected Optional<AddressDailyAggregation> snapshot() {
-		if (!changed || key().isForCalledContractHash()) {
+		if (!changed || key().isForOep()) {
 			return Optional.empty();
 		}
 
@@ -269,8 +269,8 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		AddressDailyAggregation snapshot = new AddressDailyAggregation();
 		snapshot.setAddress(key().getAddress());
 		snapshot.setTokenContractHash(key().getTokenContractHash());
-		if (key().isForCalledContractHash()) {
-			snapshot.setDateId(CALLED_CONTRACT_HASH_AGGREGATION_DATE_ID);
+		if (key().isForOep()) {
+			snapshot.setDateId(OEP_AGGREGATION_DATE_ID);
 		} else {
 			snapshot.setDateId(context.getConfig().getTotalAggregationDateId());
 		}
@@ -300,7 +300,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 	public static class AddressAggregateKey implements AggregateKey {
 		private final String address;
 		private final String tokenContractHash;
-		private boolean forCalledContractHash;
+		private boolean forOep;
 	}
 
 	private static class TotalAggregate {
