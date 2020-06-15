@@ -4,6 +4,7 @@ import com.github.ontio.explorer.statistics.aggregate.AggregateContext;
 import com.github.ontio.explorer.statistics.aggregate.support.BigDecimalRanker;
 import com.github.ontio.explorer.statistics.aggregate.support.UniqueCounter;
 import com.github.ontio.explorer.statistics.model.AddressDailyAggregation;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,10 @@ import static java.math.BigDecimal.ZERO;
  * @author LiuQi
  */
 public class AddressAggregate extends AbstractAggregate<AddressAggregate.AddressAggregateKey, AddressDailyAggregation> {
+
+	public static final int OEP_AGGREGATION_DATE_ID = Integer.MIN_VALUE;
+
+	private BigDecimal previousBalance;
 
 	private BigDecimal balance;
 
@@ -55,7 +60,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		String to = transactionInfo.getToAddress();
 
 		contractCounter.count(transactionInfo.getContractHash());
-		if (context.virtualContracts().contains(key().getTokenContractHash())) {
+		if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForOep()) {
 			if (from.equals(key().getAddress())) {
 				if (isTxHashChanged(transactionInfo)) {
 					withdrawTxCount++;
@@ -123,44 +128,62 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		String to = transactionInfo.getToAddress();
 
 		contractCounter.count(transactionInfo.getContractHash());
-		if (transactionInfo.getFromAddress().equals(key().getAddress())) {
-			if (isTxHashChanged(transactionInfo)) {
-				withdrawTxCount++;
-				total.withdrawTxCount++;
-			}
-
-			withdrawAmount = withdrawAmount.add(amount);
-			withdrawAddressCounter.count(to);
-			txAddressCounter.count(to);
-			total.withdrawAmount = total.withdrawAmount.add(amount);
-
-			if (transactionInfo.isSelfTransaction()) {
-				depositAmount = depositAmount.add(amount);
-				depositAddressCounter.count(from);
-				total.depositAmount = total.depositAmount.add(amount);
-			} else {
-				balance = balance.subtract(amount);
-				total.balance = total.balance.subtract(amount);
-			}
-
-			if (context.virtualContracts().contains(key().getTokenContractHash())) {
+		if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForOep()) {
+			if (from.equals(key().getAddress())) {
+				if (isTxHashChanged(transactionInfo)) {
+					withdrawTxCount++;
+					total.withdrawTxCount++;
+				}
+				withdrawAddressCounter.count(to);
+				txAddressCounter.count(to);
+				if (transactionInfo.isSelfTransaction()) {
+					depositAddressCounter.count(from);
+				}
 				feeAmount = feeAmount.add(transactionInfo.getFee());
 				total.feeAmount = total.feeAmount.add(transactionInfo.getFee());
+			} else if (to.equals(key().getAddress())) {
+				if (isTxHashChanged(transactionInfo)) {
+					depositTxCount++;
+					total.depositTxCount++;
+				}
+				depositAddressCounter.count(from);
+				txAddressCounter.count(from);
 			}
-		} else if (transactionInfo.getToAddress().equals(key().getAddress())) {
-			if (isTxHashChanged(transactionInfo)) {
-				depositTxCount++;
-				total.depositTxCount++;
+		} else {
+			if (from.equals(key().getAddress())) {
+				if (isTxHashChanged(transactionInfo)) {
+					withdrawTxCount++;
+					total.withdrawTxCount++;
+				}
+
+				withdrawAmount = withdrawAmount.add(amount);
+				withdrawAddressCounter.count(to);
+				txAddressCounter.count(to);
+				total.withdrawAmount = total.withdrawAmount.add(amount);
+
+				if (transactionInfo.isSelfTransaction()) {
+					depositAmount = depositAmount.add(amount);
+					depositAddressCounter.count(from);
+					total.depositAmount = total.depositAmount.add(amount);
+				} else {
+					balance = balance.subtract(amount);
+					total.balance = total.balance.subtract(amount);
+				}
+			} else if (to.equals(key().getAddress())) {
+				if (isTxHashChanged(transactionInfo)) {
+					depositTxCount++;
+					total.depositTxCount++;
+				}
+				balance = balance.add(amount);
+				depositAmount = depositAmount.add(amount);
+				depositAddressCounter.count(from);
+				txAddressCounter.count(from);
+				total.balance = total.balance.add(amount);
+				total.depositAmount = total.depositAmount.add(amount);
 			}
-			balance = balance.add(amount);
-			depositAmount = depositAmount.add(amount);
-			depositAddressCounter.count(from);
-			txAddressCounter.count(from);
-			total.balance = total.balance.add(amount);
-			total.depositAmount = total.depositAmount.add(amount);
+			balanceRanker.rank(balance);
+			total.balanceRanker.rank(total.balance);
 		}
-		balanceRanker.rank(balance);
-		total.balanceRanker.rank(total.balance);
 		changed = true;
 		total.changed = true;
 	}
@@ -173,6 +196,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		if (this.balance == null) {
 			this.balance = ZERO;
 		}
+		this.previousBalance = this.balance;
 		this.depositTxCount = 0;
 		this.withdrawTxCount = 0;
 		this.depositAmount = ZERO;
@@ -210,7 +234,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 
 	@Override
 	protected Optional<AddressDailyAggregation> snapshot() {
-		if (!changed) {
+		if (!changed || key().isForOep()) {
 			return Optional.empty();
 		}
 
@@ -232,6 +256,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		snapshot.setFeeAmount(feeAmount);
 		snapshot.setContractCount(contractCounter.getCount());
 		snapshot.setIsVirtual(context.virtualContracts().contains(key().getTokenContractHash()));
+		snapshot.setPreviousBalance(previousBalance);
 		return Optional.of(snapshot);
 	}
 
@@ -244,7 +269,11 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		AddressDailyAggregation snapshot = new AddressDailyAggregation();
 		snapshot.setAddress(key().getAddress());
 		snapshot.setTokenContractHash(key().getTokenContractHash());
-		snapshot.setDateId(context.getConfig().getTotalAggregationDateId());
+		if (key().isForOep()) {
+			snapshot.setDateId(OEP_AGGREGATION_DATE_ID);
+		} else {
+			snapshot.setDateId(context.getConfig().getTotalAggregationDateId());
+		}
 		snapshot.setBalance(total.balance);
 		snapshot.setUsdPrice(ZERO); // TODO 0 for now
 		snapshot.setMaxBalance(total.balanceRanker.getMax());
@@ -259,16 +288,19 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 		snapshot.setFeeAmount(total.feeAmount);
 		snapshot.setContractCount(0);
 		snapshot.setIsVirtual(context.virtualContracts().contains(key().getTokenContractHash()));
+		snapshot.setPreviousBalance(previousBalance);
 		return Optional.of(snapshot);
 	}
 
 	@RequiredArgsConstructor
+	@AllArgsConstructor
 	@EqualsAndHashCode
 	@Getter
 	@ToString
 	public static class AddressAggregateKey implements AggregateKey {
 		private final String address;
 		private final String tokenContractHash;
+		private boolean forOep;
 	}
 
 	private static class TotalAggregate {

@@ -9,4 +9,8 @@ public interface AddressDailyAggregationMapper extends Mapper<AddressDailyAggreg
 
 	int batchSave(List<AddressDailyAggregation> aggregations);
 
+	int reSync(AddressDailyAggregation aggregation);
+
+	int reSyncBalance(AddressDailyAggregation aggregation);
+
 }

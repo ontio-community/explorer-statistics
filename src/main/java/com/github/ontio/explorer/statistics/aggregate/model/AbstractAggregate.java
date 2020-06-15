@@ -58,8 +58,11 @@ public abstract class AbstractAggregate<K extends AggregateKey, T> implements Ag
 	protected abstract Optional<T> snapshotTotal();
 
 	@Override
-	public void rebase() {
+	public void rebase(boolean reSyncing) {
 		populateBaseline(null);
+		if (reSyncing) {
+			populateTotal(null);
+		}
 	}
 
 	protected boolean isTxHashChanged(TransactionInfo transactionInfo) {

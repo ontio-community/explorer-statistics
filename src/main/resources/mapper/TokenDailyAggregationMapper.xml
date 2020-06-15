@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.github.ontio.explorer.statistics.mapper.TokenDailyAggregationMapper">
-  <resultMap id="BaseResultMap" type="com.github.ontio.explorer.statistics.model.TokenDailyAggregation">
-    <!--
-      WARNING - @mbg.generated
-    -->
-    <result column="token_contract_hash" jdbcType="CHAR" property="tokenContractHash" />
-    <result column="date_id" jdbcType="INTEGER" property="dateId" />
-    <result column="usd_price" jdbcType="DECIMAL" property="usdPrice" />
-    <result column="tx_count" jdbcType="INTEGER" property="txCount" />
-    <result column="tx_amount" jdbcType="DECIMAL" property="txAmount" />
-    <result column="deposit_address_count" jdbcType="INTEGER" property="depositAddressCount" />
-    <result column="withdraw_address_count" jdbcType="INTEGER" property="withdrawAddressCount" />
-    <result column="tx_address_count" jdbcType="INTEGER" property="txAddressCount" />
-    <result column="fee_amount" jdbcType="DECIMAL" property="feeAmount" />
-    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
-  </resultMap>
+    <resultMap id="BaseResultMap" type="com.github.ontio.explorer.statistics.model.TokenDailyAggregation">
+        <!--
+          WARNING - @mbg.generated
+        -->
+        <result column="token_contract_hash" jdbcType="CHAR" property="tokenContractHash"/>
+        <result column="date_id" jdbcType="INTEGER" property="dateId"/>
+        <result column="usd_price" jdbcType="DECIMAL" property="usdPrice"/>
+        <result column="tx_count" jdbcType="INTEGER" property="txCount"/>
+        <result column="tx_amount" jdbcType="DECIMAL" property="txAmount"/>
+        <result column="deposit_address_count" jdbcType="INTEGER" property="depositAddressCount"/>
+        <result column="withdraw_address_count" jdbcType="INTEGER" property="withdrawAddressCount"/>
+        <result column="tx_address_count" jdbcType="INTEGER" property="txAddressCount"/>
+        <result column="fee_amount" jdbcType="DECIMAL" property="feeAmount"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
     <insert id="batchSave">
         INSERT INTO tbl_token_daily_aggregation
         (
@@ -52,4 +52,39 @@
         tx_address_count=values(tx_address_count),
         fee_amount=values(fee_amount)
     </insert>
+
+    <insert id="batchReSync">
+        INSERT INTO tbl_token_daily_aggregation
+        (
+        token_contract_hash,
+        date_id,
+        usd_price,
+        tx_count,
+        tx_amount,
+        deposit_address_count,
+        withdraw_address_count,
+        tx_address_count,
+        fee_amount
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.tokenContractHash},
+            #{item.dateId},
+            #{item.usdPrice},
+            #{item.txCount},
+            #{item.txAmount},
+            #{item.depositAddressCount},
+            #{item.withdrawAddressCount},
+            #{item.txAddressCount},
+            #{item.feeAmount}
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        usd_price=values(usd_price),
+        tx_count=tx_count + values(tx_count),
+        tx_amount=tx_amount + values(tx_amount),
+        fee_amount=fee_amount + values(fee_amount)
+    </insert>
+    
 </mapper>
