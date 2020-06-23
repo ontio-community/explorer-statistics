@@ -9,4 +9,6 @@ public interface ContractDailyAggregationMapper extends Mapper<ContractDailyAggr
 
 	int batchSave(List<ContractDailyAggregation> aggregations);
 
+	int batchReSync(List<ContractDailyAggregation> aggregations);
+
 }

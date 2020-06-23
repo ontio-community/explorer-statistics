@@ -1,5 +1,6 @@
 package com.github.ontio.explorer.statistics.aggregate.support;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -20,9 +21,7 @@ public interface UniqueCounter<T> {
 		@SafeVarargs
 		public final void count(T... values) {
 			if (values != null) {
-				for (T value : values) {
-					set.add(value);
-				}
+				set.addAll(Arrays.asList(values));
 			}
 		}
 

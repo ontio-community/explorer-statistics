@@ -1,6 +1,7 @@
 package com.github.ontio.explorer.statistics.aggregate;
 
 import com.github.ontio.explorer.statistics.aggregate.model.AggregateSnapshot;
+import com.github.ontio.explorer.statistics.aggregate.model.ReSync;
 import com.github.ontio.explorer.statistics.aggregate.model.StagingAggregateKeys;
 import com.github.ontio.explorer.statistics.aggregate.model.TotalAggregationSnapshot;
 import com.github.ontio.explorer.statistics.aggregate.service.AggregateService;
@@ -8,6 +9,8 @@ import com.github.ontio.explorer.statistics.aggregate.support.DateIdUtil;
 import com.github.ontio.explorer.statistics.aggregate.support.DisruptorEvent;
 import com.github.ontio.explorer.statistics.aggregate.support.DisruptorEventDispatcher;
 import com.github.ontio.explorer.statistics.aggregate.support.DisruptorEventPublisher;
+import com.github.ontio.explorer.statistics.mapper.ContractMapper;
+import com.github.ontio.explorer.statistics.model.Contract;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -27,12 +30,16 @@ public class AggregationSinker implements DisruptorEventPublisher, EventHandler<
 
 	private final DisruptorEventDispatcher dispatcher;
 
+	private final ContractMapper contractMapper;
+
 	@Getter
 	private RingBuffer<DisruptorEvent> ringBuffer;
 
-	public AggregationSinker(AggregateService aggregateService, DisruptorEventDispatcher dispatcher) {
+	public AggregationSinker(AggregateService aggregateService, DisruptorEventDispatcher dispatcher,
+			ContractMapper contractMapper) {
 		this.aggregateService = aggregateService;
 		this.dispatcher = dispatcher;
+		this.contractMapper = contractMapper;
 		Disruptor<DisruptorEvent> disruptor = createDisruptor(32, ProducerType.SINGLE);
 		disruptor.handleEventsWith(this).then(DisruptorEvent.CLEANER);
 		disruptor.start();
@@ -51,6 +58,16 @@ public class AggregationSinker implements DisruptorEventPublisher, EventHandler<
 				persistAggregations((AggregateSnapshot) event);
 			} else if (event instanceof TotalAggregationSnapshot) {
 				flushTotalAggregations((TotalAggregationSnapshot) event);
+			} else if (event instanceof ReSync.Begin) {
+				ReSync.Begin begin = (ReSync.Begin) event;
+				begin.getReSync().readyToBegin();
+			} else if (event instanceof ReSync.End) {
+				ReSync.End end = (ReSync.End) event;
+				ReSync reSync = end.getReSync();
+				Contract contract = reSync.contractForUpdate();
+				contract.setReSyncStatus(3);
+				contractMapper.updateByPrimaryKeySelective(contract);
+				reSync.readyToEnd();
 			}
 		} catch (Exception e) {
 			log.error("error saving/flushing aggregations", e);
