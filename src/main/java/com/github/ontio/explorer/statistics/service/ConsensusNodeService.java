@@ -15,6 +15,7 @@
 
 package com.github.ontio.explorer.statistics.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.ontio.core.governance.GovernanceView;
@@ -30,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -344,5 +346,151 @@ public class ConsensusNodeService {
             i++;
         }
         return nodeInfos;
+    }
+
+    public void updateNodeAnnualizedYield() {
+        List<NodeInfoOnChain> nodeInfoOnChains = nodeInfoOnChainMapper.selectAll();
+        if (CollectionUtils.isEmpty(nodeInfoOnChains)) {
+            return;
+        }
+        List<String> addressList = new ArrayList<>();
+        addressList.add("ANZH6McmwUKABVKRbduGXfbbqhaz6Fxokd");
+        addressList.add("AUtZgQxZQwnmzPa68zAphyxyByGFh9kDK4");
+        addressList.add("Ado2HUiKWwAfHGpoE4cWKSpzyAx99zQEX9");
+        addressList.add("AbYiPDZLGD4qPzkx4b3fhDQUhaRWVJbyGd");
+        addressList.add("ATmZZkN1YKftT2UAC1JQEGcTuT3z5Qq4PC");
+        addressList.add("AMgqgcQADQ8v7AcCeHia92vneRzhX1FMG4");
+        addressList.add("AGx43yPhWuFshhrfFESZ9EAasXNwsAMBgx");
+        addressList.add("AakW1sjaVdX15xYNeMqgpZFuiQCBgQYpBi");
+//        List<BigDecimal> fuList = new ArrayList<>();
+//        List<BigDecimal> fpList = new ArrayList<>();
+        List<NodeInfoOnChain> consensusNodes = new ArrayList<>();
+        List<NodeInfoOnChain> candidateNodes = new ArrayList<>();
+        Long top49Stake = 0L;
+        BigDecimal totalSr = BigDecimal.ZERO;
+        BigDecimal totalFuFp = BigDecimal.ZERO;
+        // filter consensus and candidate node
+        for (int i = 0; i < nodeInfoOnChains.size(); i++) {
+            NodeInfoOnChain nodeInfoOnChain = nodeInfoOnChains.get(i);
+            Integer status = nodeInfoOnChain.getStatus();
+            if (status.equals(2)) {
+                consensusNodes.add(nodeInfoOnChain);
+            } else if (status.equals(1)) {
+                candidateNodes.add(nodeInfoOnChain);
+            }
+            if (i < 7) {
+                Long fu = 0L;
+                Long currentStake = nodeInfoOnChain.getCurrentStake();
+                Long fp = nodeInfoOnChain.getInitPos();
+                String nodeProportion = nodeInfoOnChain.getNodeProportion().replace("%", "");
+                BigDecimal proportion = new BigDecimal(nodeProportion).divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);
+                for (String address : addressList) {
+                    String authorizeInfo = ontSdkService.getAuthorizeInfo(nodeInfoOnChain.getPublicKey(), address);
+                    Long consensusPos = 0L;
+                    if (!StringUtils.isEmpty(authorizeInfo)) {
+                        consensusPos = JSONObject.parseObject(authorizeInfo).getLong("consensusPos");
+                    }
+                    fu += consensusPos;
+                }
+                BigDecimal fuFp = new BigDecimal(currentStake).add(new BigDecimal(fu));
+                BigDecimal decimal1 = proportion.multiply(new BigDecimal(fu * currentStake)).divide(new BigDecimal(currentStake - fp),2,BigDecimal.ROUND_HALF_UP);
+                BigDecimal subtract = new BigDecimal(1).subtract(proportion);
+                BigDecimal decimal2 = new BigDecimal(currentStake).multiply(subtract);
+                BigDecimal sr = decimal1.add(decimal2);
+                totalSr = totalSr.add(sr);
+                totalFuFp = totalFuFp.add(fuFp);
+//                fuList.add(new BigDecimal(fu));
+//                fpList.add(new BigDecimal(fp));
+            }
+            if (i < 49) {
+                Long currentStake = nodeInfoOnChain.getCurrentStake();
+                top49Stake += currentStake;
+            }
+        }
+
+        // Top 49 节点的质押总和
+        BigDecimal topStake = new BigDecimal(top49Stake);
+
+        // 第一轮
+        BigDecimal first = new BigDecimal(10000000).divide(topStake, 2, BigDecimal.ROUND_HALF_UP);
+        // 第二轮
+        BigDecimal subtract = topStake.subtract(totalFuFp);
+        BigDecimal second = totalSr.divide(subtract, 2, BigDecimal.ROUND_HALF_UP);
+
+        //  候选节点的质押总和
+        BigDecimal candidateTotalStake = getTotalStake(candidateNodes);
+
+        BigDecimal consensusTotalStake = getTotalStake(consensusNodes);
+        BigDecimal consensusCount = new BigDecimal(consensusNodes.size());
+        //  共识节点的平均质押量
+        BigDecimal consensusAverageStake = consensusTotalStake.divide(consensusCount, 2, BigDecimal.ROUND_HALF_UP);
+
+        // A 为所有共识节点的激励系数总和
+        Map<String, BigDecimal> consensusInspireMap = new HashMap<>();
+        BigDecimal totalConsensusInspire = getConsensusInspire(consensusAverageStake, consensusInspireMap, consensusNodes);
+
+        // 一年释放的 ONG 总量
+        BigDecimal releaseOng = new BigDecimal(365 * 24 * 60 * 60);
+
+        // 预测一年累积的手续费总量
+        BigDecimal commission = BigDecimal.ZERO;
+
+        // 节点的收益计算
+        for (int i = 0; i < nodeInfoOnChains.size(); i++) {
+            BigDecimal finalReleaseOng = BigDecimal.ZERO;
+            BigDecimal finalCommission = BigDecimal.ZERO;
+            BigDecimal foundationInspire = BigDecimal.ZERO;
+            NodeInfoOnChain nodeInfoOnChain = nodeInfoOnChains.get(i);
+            Integer status = nodeInfoOnChain.getStatus();
+            BigDecimal currentStake = new BigDecimal(nodeInfoOnChain.getCurrentStake());
+            if (status.equals(2)) {
+                String publicKey = nodeInfoOnChain.getPublicKey();
+                BigDecimal consensusInspire = consensusInspireMap.get(publicKey);
+                // 共识节点手续费和释放的 ONG
+                finalReleaseOng = getReleaseAndCommissionOng(consensusInspire, releaseOng, totalConsensusInspire);
+                finalCommission = getReleaseAndCommissionOng(consensusInspire, commission, totalConsensusInspire);
+            } else if (status.equals(1)) {
+                // 候选节点手续费和释放的 ONG
+                finalReleaseOng = getReleaseAndCommissionOng(currentStake, releaseOng, totalConsensusInspire);
+                finalCommission = getReleaseAndCommissionOng(currentStake, commission, totalConsensusInspire);
+            }
+            if (i < 7) {
+                String nodeProportion = nodeInfoOnChain.getNodeProportion().replace("%", "");
+                BigDecimal proportion = new BigDecimal(nodeProportion).divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal fp = new BigDecimal(nodeInfoOnChain.getInitPos());
+                foundationInspire = first.multiply(currentStake.subtract(fp)).multiply(new BigDecimal(1).subtract(proportion));
+            } else if (i < 49) {
+                foundationInspire = first.multiply(currentStake).multiply(new BigDecimal(1).add(second));
+            }
+            log.info("finalReleaseOng:{}", finalReleaseOng.toPlainString());
+            log.info("finalCommission:{}", finalCommission.toPlainString());
+            log.info("foundationInspire:{}", foundationInspire.toPlainString());
+        }
+    }
+
+    private BigDecimal getReleaseAndCommissionOng(BigDecimal value, BigDecimal ong, BigDecimal totalConsensusInspire) {
+        return new BigDecimal(0.5).multiply(ong).multiply(value).divide(totalConsensusInspire, 2, BigDecimal.ROUND_HALF_UP);
+    }
+
+    private BigDecimal getConsensusInspire(BigDecimal consensusAverageStake, Map<String, BigDecimal> consensusInspireMap, List<NodeInfoOnChain> consensusNodes) {
+        BigDecimal totalConsensusInspire = BigDecimal.ZERO;
+        for (NodeInfoOnChain nodeInfoOnChain : consensusNodes) {
+            Long currentStake = nodeInfoOnChain.getCurrentStake();
+            BigDecimal xi = new BigDecimal(currentStake * 0.5).divide(consensusAverageStake, 2, BigDecimal.ROUND_HALF_UP);
+            double pow = Math.pow(Math.E, (BigDecimal.ZERO.subtract(xi)).doubleValue());
+            BigDecimal consensusInspire = xi.multiply(new BigDecimal(pow)).setScale(2, BigDecimal.ROUND_HALF_UP);
+            consensusInspireMap.put(nodeInfoOnChain.getPublicKey(), consensusInspire);
+            totalConsensusInspire = totalConsensusInspire.add(consensusInspire);
+        }
+        return totalConsensusInspire;
+    }
+
+    private BigDecimal getTotalStake(List<NodeInfoOnChain> nodes) {
+        Long totalStake = 0L;
+        for (NodeInfoOnChain node : nodes) {
+            Long currentStake = node.getCurrentStake();
+            totalStake += currentStake;
+        }
+        return new BigDecimal(totalStake);
     }
 }

@@ -1,6 +1,9 @@
 package com.github.ontio.explorer.statistics.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.github.ontio.OntSdk;
+import com.github.ontio.common.Address;
+import com.github.ontio.common.Helper;
 import com.github.ontio.core.block.Block;
 import com.github.ontio.core.governance.Configuration;
 import com.github.ontio.core.governance.GovernanceView;
@@ -104,6 +107,18 @@ public class OntSdkService {
             log.warn("Using node: {}", sdk.getRestful().toString());
         } catch (SDKException e) {
             log.warn("Getting REST URL failed: {}", e.getMessage());
+        }
+    }
+
+    public String getAuthorizeInfo(String publicKey, String address) {
+        try {
+            Address addr = Address.decodeBase58(address);
+            return sdk.nativevm().governance().getAuthorizeInfo(publicKey, addr);
+        } catch (SDKException e) {
+            log.warn("Getting authorize info failed: {}", e.getMessage());
+            switchSyncNode();
+            log.info("Getting authorize info again");
+            return getAuthorizeInfo(publicKey, address);
         }
     }
 
