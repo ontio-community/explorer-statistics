@@ -353,17 +353,8 @@ public class ConsensusNodeService {
         if (CollectionUtils.isEmpty(nodeInfoOnChains)) {
             return;
         }
-        List<String> addressList = new ArrayList<>();
-        addressList.add("ANZH6McmwUKABVKRbduGXfbbqhaz6Fxokd");
-        addressList.add("AUtZgQxZQwnmzPa68zAphyxyByGFh9kDK4");
-        addressList.add("Ado2HUiKWwAfHGpoE4cWKSpzyAx99zQEX9");
-        addressList.add("AbYiPDZLGD4qPzkx4b3fhDQUhaRWVJbyGd");
-        addressList.add("ATmZZkN1YKftT2UAC1JQEGcTuT3z5Qq4PC");
-        addressList.add("AMgqgcQADQ8v7AcCeHia92vneRzhX1FMG4");
-        addressList.add("AGx43yPhWuFshhrfFESZ9EAasXNwsAMBgx");
-        addressList.add("AakW1sjaVdX15xYNeMqgpZFuiQCBgQYpBi");
-//        List<BigDecimal> fuList = new ArrayList<>();
-//        List<BigDecimal> fpList = new ArrayList<>();
+        List<String> addressList = paramsConfig.getNodeFoundationAddress();
+        List<BigDecimal> fpFuList = new ArrayList<>();
         List<NodeInfoOnChain> consensusNodes = new ArrayList<>();
         List<NodeInfoOnChain> candidateNodes = new ArrayList<>();
         Long top49Stake = 0L;
@@ -392,15 +383,14 @@ public class ConsensusNodeService {
                     }
                     fu += consensusPos;
                 }
-                BigDecimal fuFp = new BigDecimal(currentStake).add(new BigDecimal(fu));
-                BigDecimal decimal1 = proportion.multiply(new BigDecimal(fu * currentStake)).divide(new BigDecimal(currentStake - fp),2,BigDecimal.ROUND_HALF_UP);
+                BigDecimal fuFp = new BigDecimal(fp).add(new BigDecimal(fu));
+                fpFuList.add(fuFp);
+                BigDecimal decimal1 = proportion.multiply(new BigDecimal(fu * currentStake)).divide(new BigDecimal(currentStake - fp), 2, BigDecimal.ROUND_HALF_UP);
                 BigDecimal subtract = new BigDecimal(1).subtract(proportion);
                 BigDecimal decimal2 = new BigDecimal(currentStake).multiply(subtract);
                 BigDecimal sr = decimal1.add(decimal2);
                 totalSr = totalSr.add(sr);
                 totalFuFp = totalFuFp.add(fuFp);
-//                fuList.add(new BigDecimal(fu));
-//                fpList.add(new BigDecimal(fp));
             }
             if (i < 49) {
                 Long currentStake = nodeInfoOnChain.getCurrentStake();
@@ -432,7 +422,7 @@ public class ConsensusNodeService {
         // 一年释放的 ONG 总量
         BigDecimal releaseOng = new BigDecimal(365 * 24 * 60 * 60);
 
-        // 预测一年累积的手续费总量
+        // todo 预测一年累积的手续费总量
         BigDecimal commission = BigDecimal.ZERO;
 
         // 节点的收益计算
@@ -440,8 +430,13 @@ public class ConsensusNodeService {
             BigDecimal finalReleaseOng = BigDecimal.ZERO;
             BigDecimal finalCommission = BigDecimal.ZERO;
             BigDecimal foundationInspire = BigDecimal.ZERO;
+            BigDecimal userFoundationInspire = BigDecimal.ZERO;
+
             NodeInfoOnChain nodeInfoOnChain = nodeInfoOnChains.get(i);
             Integer status = nodeInfoOnChain.getStatus();
+            String proportion = nodeInfoOnChain.getNodeProportion().replace("%", "");
+            BigDecimal userProportion = new BigDecimal(proportion).divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);
+            BigDecimal nodeProportion = new BigDecimal(1).subtract(userProportion);
             BigDecimal currentStake = new BigDecimal(nodeInfoOnChain.getCurrentStake());
             if (status.equals(2)) {
                 String publicKey = nodeInfoOnChain.getPublicKey();
@@ -451,20 +446,33 @@ public class ConsensusNodeService {
                 finalCommission = getReleaseAndCommissionOng(consensusInspire, commission, totalConsensusInspire);
             } else if (status.equals(1)) {
                 // 候选节点手续费和释放的 ONG
-                finalReleaseOng = getReleaseAndCommissionOng(currentStake, releaseOng, totalConsensusInspire);
-                finalCommission = getReleaseAndCommissionOng(currentStake, commission, totalConsensusInspire);
+                finalReleaseOng = getReleaseAndCommissionOng(currentStake, releaseOng, candidateTotalStake);
+                finalCommission = getReleaseAndCommissionOng(currentStake, commission, candidateTotalStake);
             }
             if (i < 7) {
-                String nodeProportion = nodeInfoOnChain.getNodeProportion().replace("%", "");
-                BigDecimal proportion = new BigDecimal(nodeProportion).divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);
                 BigDecimal fp = new BigDecimal(nodeInfoOnChain.getInitPos());
-                foundationInspire = first.multiply(currentStake.subtract(fp)).multiply(new BigDecimal(1).subtract(proportion));
+                BigDecimal siSubFp = currentStake.subtract(fp);
+                foundationInspire = first.multiply(siSubFp).multiply(nodeProportion);
+                // 用户收益
+                BigDecimal fpFu = fpFuList.get(i);
+                BigDecimal userStake = currentStake.subtract(fpFu);
+                BigDecimal siPb = currentStake.multiply(userProportion);
+                BigDecimal add = siPb.divide(siSubFp, 2, BigDecimal.ROUND_HALF_UP).add(second);
+                userFoundationInspire = first.multiply(userStake).multiply(add);
             } else if (i < 49) {
                 foundationInspire = first.multiply(currentStake).multiply(new BigDecimal(1).add(second));
             }
-            log.info("finalReleaseOng:{}", finalReleaseOng.toPlainString());
-            log.info("finalCommission:{}", finalCommission.toPlainString());
-            log.info("foundationInspire:{}", foundationInspire.toPlainString());
+            BigDecimal finalUserReleaseOng = finalReleaseOng.multiply(userProportion);
+            BigDecimal finalNodeReleaseOng = finalReleaseOng.multiply(nodeProportion);
+            BigDecimal finalUserCommission = finalCommission.multiply(userProportion);
+            BigDecimal finalNodeCommission = finalCommission.multiply(nodeProportion);
+
+//            log.info("finalUserReleaseOng:{}", finalUserReleaseOng.toPlainString());
+//            log.info("finalNodeReleaseOng:{}", finalNodeReleaseOng.toPlainString());
+//            log.info("finalUserCommission:{}", finalUserCommission.toPlainString());
+//            log.info("finalNodeCommission:{}", finalNodeCommission.toPlainString());
+//            log.info("foundationInspire:{}", foundationInspire.toPlainString());
+//            log.info("userFoundationInspire:{}", userFoundationInspire.toPlainString());
         }
     }
 

@@ -28,17 +28,22 @@
         WHERE public_key = #{publicKey};
     </select>
 
-  <update id="syncWithOnChainNodes">
-    INSERT INTO tbl_node_info_off_chain ( public_key, address, node_type, ont_id ) SELECT
-onchain.public_key,
-onchain.address,
-onchain.status,
-''
+  <insert id="syncWithOnChainNodes">
+INSERT INTO tbl_node_info_off_chain ( name, public_key, address, node_type, ont_id ) SELECT
+CASE
+		onchain.name
+		WHEN '' THEN
+		CONCAT('Node','_',SUBSTRING(onchain.public_key,1,6)) ELSE onchain.name
+	END,
+	onchain.public_key,
+	onchain.address,
+	onchain.STATUS,
+	''
 FROM
 	tbl_node_info_on_chain onchain
 	LEFT JOIN tbl_node_info_off_chain offchain ON onchain.public_key = offchain.public_key
 WHERE
 	offchain.public_key IS NULL;
-  </update>
+  </insert>
 
 </mapper>

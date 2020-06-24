@@ -50,6 +50,15 @@ config:
   node-map-url: http://52.77.140.175:8888/api/nodes
   is-test-net: false
   max-staking-change-count: 120000
+  node-foundation-address:
+    - ANZH6McmwUKABVKRbduGXfbbqhaz6Fxokd
+    - AUtZgQxZQwnmzPa68zAphyxyByGFh9kDK4
+    - Ado2HUiKWwAfHGpoE4cWKSpzyAx99zQEX9
+    - AbYiPDZLGD4qPzkx4b3fhDQUhaRWVJbyGd
+    - ATmZZkN1YKftT2UAC1JQEGcTuT3z5Qq4PC
+    - AMgqgcQADQ8v7AcCeHia92vneRzhX1FMG4
+    - AGx43yPhWuFshhrfFESZ9EAasXNwsAMBgx
+    - AakW1sjaVdX15xYNeMqgpZFuiQCBgQYpBi
 
 node-schedule-task:
   update-on-chain-info: 300000
