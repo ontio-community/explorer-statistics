@@ -58,6 +58,8 @@ public class ConsensusNodeService {
 
     private NodeOverviewHistoryMapper nodeOverviewHistoryMapper;
 
+    private TxDetailMapper txDetailMapper;
+
     private OntSdkService ontSdkService;
 
     @Autowired
@@ -69,7 +71,8 @@ public class ConsensusNodeService {
                                 NodeInfoOnChainMapper nodeInfoOnChainMapper,
                                 NodeRankHistoryMapper nodeRankHistoryMapper,
                                 NodeInfoOffChainMapper nodeInfoOffChainMapper,
-                                NodeOverviewHistoryMapper nodeOverviewHistoryMapper) {
+                                NodeOverviewHistoryMapper nodeOverviewHistoryMapper,
+                                TxDetailMapper txDetailMapper) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -79,6 +82,7 @@ public class ConsensusNodeService {
         this.nodeRankHistoryMapper = nodeRankHistoryMapper;
         this.nodeInfoOffChainMapper = nodeInfoOffChainMapper;
         this.nodeOverviewHistoryMapper = nodeOverviewHistoryMapper;
+        this.txDetailMapper = txDetailMapper;
     }
 
     public void updateBlockCountToNextRound() {
@@ -422,9 +426,29 @@ public class ConsensusNodeService {
         // 一年释放的 ONG 总量
         BigDecimal releaseOng = new BigDecimal(365 * 24 * 60 * 60);
 
-        // todo 预测一年累积的手续费总量
+        // 预测一年累积的手续费总量
         BigDecimal commission = BigDecimal.ZERO;
+        BigDecimal lastMonthCommission = BigDecimal.ZERO;
+        int now = (int) (System.currentTimeMillis() / 1000);
+        int lastMonth = now - (30 * 24 * 60 * 60);
+        // todo 配置activeTime
+        int activeTime = 1594052645;
+        if (lastMonth < activeTime) {
+            if (now < activeTime) {
+                BigDecimal fee = txDetailMapper.findFeeAmountOneMonth(now, lastMonth);
+                lastMonthCommission = fee.multiply(new BigDecimal(5));
+            } else {
+                BigDecimal fee1 = txDetailMapper.findFeeAmountOneMonth(now, activeTime);
+                BigDecimal fee2 = txDetailMapper.findFeeAmountOneMonth(activeTime, lastMonth);
+                BigDecimal multiply = fee2.multiply(new BigDecimal(5));
+                lastMonthCommission = fee1.add(multiply);
+            }
+        } else {
+            lastMonthCommission = txDetailMapper.findFeeAmountOneMonth(now, lastMonth);
+        }
+        commission = lastMonthCommission.multiply(new BigDecimal(365)).divide(new BigDecimal(30),2,BigDecimal.ROUND_HALF_UP);
 
+        log.info("commission:{}", commission.toPlainString());
         // 节点的收益计算
         for (int i = 0; i < nodeInfoOnChains.size(); i++) {
             BigDecimal finalReleaseOng = BigDecimal.ZERO;
@@ -467,12 +491,12 @@ public class ConsensusNodeService {
             BigDecimal finalUserCommission = finalCommission.multiply(userProportion);
             BigDecimal finalNodeCommission = finalCommission.multiply(nodeProportion);
 
-//            log.info("finalUserReleaseOng:{}", finalUserReleaseOng.toPlainString());
-//            log.info("finalNodeReleaseOng:{}", finalNodeReleaseOng.toPlainString());
-//            log.info("finalUserCommission:{}", finalUserCommission.toPlainString());
-//            log.info("finalNodeCommission:{}", finalNodeCommission.toPlainString());
-//            log.info("foundationInspire:{}", foundationInspire.toPlainString());
-//            log.info("userFoundationInspire:{}", userFoundationInspire.toPlainString());
+            log.info("finalUserReleaseOng:{}", finalUserReleaseOng.toPlainString());
+            log.info("finalNodeReleaseOng:{}", finalNodeReleaseOng.toPlainString());
+            log.info("finalUserCommission:{}", finalUserCommission.toPlainString());
+            log.info("finalNodeCommission:{}", finalNodeCommission.toPlainString());
+            log.info("foundationInspire:{}", foundationInspire.toPlainString());
+            log.info("userFoundationInspire:{}", userFoundationInspire.toPlainString());
         }
     }
 
