@@ -18,6 +18,8 @@ public class ParamsConfig {
 
     private List<String> hosts = new ArrayList<>();
 
+    private List<String> nodeFoundationAddress = new ArrayList<>();
+
     private String consensusNodeDetailUrl;
 
     private String nodeMapUrl;
