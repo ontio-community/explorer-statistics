@@ -40,6 +40,10 @@ public class ParamsConfig {
 
     private boolean reSyncEnabled = true;
 
+    private String explorerUrl;
+
+    private int inspireActiveTime;
+
     public interface Field {
 
         String maxStakingChangeCount = "maxStakingChangeCount";

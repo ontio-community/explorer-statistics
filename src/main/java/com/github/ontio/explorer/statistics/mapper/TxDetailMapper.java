@@ -19,6 +19,8 @@ import com.github.ontio.explorer.statistics.model.TxDetail;
 import org.springframework.stereotype.Repository;
 import tk.mybatis.mapper.common.Mapper;
 
+import java.math.BigDecimal;
+
 @Repository
 public interface TxDetailMapper extends Mapper<TxDetail> {
     // self-defined SQL
@@ -33,5 +35,7 @@ public interface TxDetailMapper extends Mapper<TxDetail> {
     Integer findFirstBlockHeightAfterTxTime(int txTime);
 
     Integer findLastBlockHeightBeforeTxTime(int txTime);
+
+    BigDecimal findFeeAmountOneMonth(int now, int before);
 
 }
