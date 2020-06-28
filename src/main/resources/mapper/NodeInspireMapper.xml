@@ -10,6 +10,8 @@
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="status" jdbcType="INTEGER" property="status"/>
         <result column="current_stake" jdbcType="BIGINT" property="currentStake"/>
+        <result column="init_pos" jdbcType="BIGINT" property="initPos"/>
+        <result column="total_pos" jdbcType="BIGINT" property="totalPos"/>
         <result column="node_release_inspire" jdbcType="BIGINT" property="nodeReleaseInspire"/>
         <result column="node_release_inspire_rate" jdbcType="VARCHAR" property="nodeReleaseInspireRate"/>
         <result column="user_release_inspire" jdbcType="BIGINT" property="userReleaseInspire"/>
@@ -31,13 +33,13 @@
         FROM tbl_node_inspire
     </delete>
     <insert id="batchInsert" parameterType="java.util.List">
-        INSERT INTO tbl_node_inspire ( public_key, address, name, status, current_stake, node_release_inspire, node_release_inspire_rate,
+        INSERT INTO tbl_node_inspire ( public_key, address, name, status, current_stake, init_pos, total_pos, node_release_inspire, node_release_inspire_rate,
         user_release_inspire, user_release_inspire_rate, node_commission_inspire, node_commission_inspire_rate, user_commission_inspire,
         user_commission_inspire_rate, node_foundation_inspire, node_foundation_inspire_rate, user_foundation_inspire, user_foundation_inspire_rate)
         values
         <foreach collection="list" index="index" item="item" separator=",">
             (#{item.publicKey,jdbcType=VARCHAR}, #{item.address,jdbcType=VARCHAR},#{item.name,jdbcType=VARCHAR},
-            #{item.status,jdbcType=INTEGER},#{item.currentStake,jdbcType=BIGINT},
+            #{item.status,jdbcType=INTEGER},#{item.currentStake,jdbcType=BIGINT},#{item.initPos,jdbcType=BIGINT},#{item.totalPos,jdbcType=BIGINT},
             #{item.nodeReleaseInspire,jdbcType=BIGINT},#{item.nodeReleaseInspireRate,jdbcType=VARCHAR},
             #{item.userReleaseInspire,jdbcType=BIGINT},#{item.userReleaseInspireRate,jdbcType=VARCHAR},
             #{item.nodeCommissionInspire,jdbcType=BIGINT},#{item.nodeCommissionInspireRate,jdbcType=VARCHAR},

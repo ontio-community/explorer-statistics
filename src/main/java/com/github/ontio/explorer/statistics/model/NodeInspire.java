@@ -30,6 +30,12 @@ public class NodeInspire {
     @Column(name = "current_stake")
     private Long currentStake;
 
+    @Column(name = "init_pos")
+    private Long initPos;
+
+    @Column(name = "total_pos")
+    private Long totalPos;
+
     @Column(name = "node_release_inspire")
     private Long nodeReleaseInspire;
 
