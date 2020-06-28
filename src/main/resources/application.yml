@@ -59,6 +59,8 @@ config:
     - AMgqgcQADQ8v7AcCeHia92vneRzhX1FMG4
     - AGx43yPhWuFshhrfFESZ9EAasXNwsAMBgx
     - AakW1sjaVdX15xYNeMqgpZFuiQCBgQYpBi
+  inspire-active-time: 1594051200
+  explorer-url: https://polarisexplorer.ont.io/v2/
 
 node-schedule-task:
   update-on-chain-info: 300000

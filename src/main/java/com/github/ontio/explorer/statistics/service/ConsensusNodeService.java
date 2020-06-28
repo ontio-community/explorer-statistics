@@ -22,10 +22,8 @@ import com.github.ontio.core.governance.GovernanceView;
 import com.github.ontio.core.governance.PeerPoolItem;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.mapper.*;
-import com.github.ontio.explorer.statistics.model.NodeInfoOnChain;
-import com.github.ontio.explorer.statistics.model.NodeOverviewHistory;
-import com.github.ontio.explorer.statistics.model.NodeRankChange;
-import com.github.ontio.explorer.statistics.model.NodeRankHistory;
+import com.github.ontio.explorer.statistics.model.*;
+import com.github.ontio.explorer.statistics.util.HttpClientUtil;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +58,8 @@ public class ConsensusNodeService {
 
     private TxDetailMapper txDetailMapper;
 
+    private NodeInspireMapper nodeInspireMapper;
+
     private OntSdkService ontSdkService;
 
     @Autowired
@@ -72,7 +72,8 @@ public class ConsensusNodeService {
                                 NodeRankHistoryMapper nodeRankHistoryMapper,
                                 NodeInfoOffChainMapper nodeInfoOffChainMapper,
                                 NodeOverviewHistoryMapper nodeOverviewHistoryMapper,
-                                TxDetailMapper txDetailMapper) {
+                                TxDetailMapper txDetailMapper,
+                                NodeInspireMapper nodeInspireMapper) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -83,6 +84,7 @@ public class ConsensusNodeService {
         this.nodeInfoOffChainMapper = nodeInfoOffChainMapper;
         this.nodeOverviewHistoryMapper = nodeOverviewHistoryMapper;
         this.txDetailMapper = txDetailMapper;
+        this.nodeInspireMapper = nodeInspireMapper;
     }
 
     public void updateBlockCountToNextRound() {
@@ -352,7 +354,7 @@ public class ConsensusNodeService {
         return nodeInfos;
     }
 
-    public void updateNodeAnnualizedYield() {
+    public void updateNodeAnnualizedYield() throws Exception {
         List<NodeInfoOnChain> nodeInfoOnChains = nodeInfoOnChainMapper.selectAll();
         if (CollectionUtils.isEmpty(nodeInfoOnChains)) {
             return;
@@ -431,8 +433,8 @@ public class ConsensusNodeService {
         BigDecimal lastMonthCommission = BigDecimal.ZERO;
         int now = (int) (System.currentTimeMillis() / 1000);
         int lastMonth = now - (30 * 24 * 60 * 60);
-        // todo 配置activeTime
-        int activeTime = 1594052645;
+        // 获取激活时间
+        int activeTime = paramsConfig.getInspireActiveTime();
         if (lastMonth < activeTime) {
             if (now < activeTime) {
                 BigDecimal fee = txDetailMapper.findFeeAmountOneMonth(now, lastMonth);
@@ -446,11 +448,26 @@ public class ConsensusNodeService {
         } else {
             lastMonthCommission = txDetailMapper.findFeeAmountOneMonth(now, lastMonth);
         }
-        commission = lastMonthCommission.multiply(new BigDecimal(365)).divide(new BigDecimal(30),2,BigDecimal.ROUND_HALF_UP);
+        commission = lastMonthCommission.multiply(new BigDecimal(365)).divide(new BigDecimal(30), 2, BigDecimal.ROUND_HALF_UP);
 
-        log.info("commission:{}", commission.toPlainString());
+        Map<String, Object> params = new HashMap<>();
+        params.put("token", "ong");
+        params.put("fiat", "USD");
+        String ongResp = HttpClientUtil.getRequest(paramsConfig.getExplorerUrl() + "tokens/prices", params, new HashMap<>());
+        String ongPrice = JSONObject.parseObject(ongResp).getJSONObject("result").getJSONObject("prices").getJSONObject("USD").getString("price");
+
+        params.put("token", "ont");
+        String ontResp = HttpClientUtil.getRequest(paramsConfig.getExplorerUrl() + "tokens/prices", params, new HashMap<>());
+        String ontPrice = JSONObject.parseObject(ontResp).getJSONObject("result").getJSONObject("prices").getJSONObject("USD").getString("price");
+
+        BigDecimal ong = new BigDecimal(ongPrice);
+        BigDecimal ont = new BigDecimal(ontPrice);
+
         // 节点的收益计算
+        List<NodeInspire> nodeInspireList = new ArrayList<>();
+        BigDecimal oneHundred = new BigDecimal(100);
         for (int i = 0; i < nodeInfoOnChains.size(); i++) {
+            NodeInspire nodeInspire = new NodeInspire();
             BigDecimal finalReleaseOng = BigDecimal.ZERO;
             BigDecimal finalCommission = BigDecimal.ZERO;
             BigDecimal foundationInspire = BigDecimal.ZERO;
@@ -491,13 +508,38 @@ public class ConsensusNodeService {
             BigDecimal finalUserCommission = finalCommission.multiply(userProportion);
             BigDecimal finalNodeCommission = finalCommission.multiply(nodeProportion);
 
-            log.info("finalUserReleaseOng:{}", finalUserReleaseOng.toPlainString());
-            log.info("finalNodeReleaseOng:{}", finalNodeReleaseOng.toPlainString());
-            log.info("finalUserCommission:{}", finalUserCommission.toPlainString());
-            log.info("finalNodeCommission:{}", finalNodeCommission.toPlainString());
-            log.info("foundationInspire:{}", foundationInspire.toPlainString());
-            log.info("userFoundationInspire:{}", userFoundationInspire.toPlainString());
+            BigDecimal currentStakeUsd = currentStake.multiply(ont);
+            BigDecimal nodeReleaseUsd = finalNodeReleaseOng.multiply(ong);
+            BigDecimal nodeCommissionUsd = finalNodeCommission.multiply(ong);
+            BigDecimal nodeFoundationUsd = foundationInspire.multiply(ong);
+            BigDecimal userReleaseUsd = finalUserReleaseOng.multiply(ong);
+            BigDecimal userCommissionUsd = finalUserCommission.multiply(ong);
+            BigDecimal userFoundationUsd = userFoundationInspire.multiply(ong);
+
+            nodeInspire.setPublicKey(nodeInfoOnChain.getPublicKey());
+            nodeInspire.setAddress(nodeInfoOnChain.getAddress());
+            nodeInspire.setName(nodeInfoOnChain.getName());
+            nodeInspire.setStatus(status);
+            nodeInspire.setCurrentStake(nodeInfoOnChain.getCurrentStake());
+            nodeInspire.setNodeReleaseInspire(finalNodeReleaseOng.longValue());
+            nodeInspire.setUserReleaseInspire(finalUserReleaseOng.longValue());
+            nodeInspire.setNodeCommissionInspire(finalNodeCommission.longValue());
+            nodeInspire.setUserCommissionInspire(finalUserCommission.longValue());
+            nodeInspire.setNodeFoundationInspire(foundationInspire.longValue());
+            nodeInspire.setUserFoundationInspire(userFoundationInspire.longValue());
+
+            nodeInspire.setNodeReleaseInspireRate(nodeReleaseUsd.divide(currentStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
+            nodeInspire.setNodeCommissionInspireRate(nodeCommissionUsd.divide(currentStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
+            nodeInspire.setNodeFoundationInspireRate(nodeFoundationUsd.divide(currentStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
+            nodeInspire.setUserReleaseInspireRate(userReleaseUsd.divide(currentStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
+            nodeInspire.setUserCommissionInspireRate(userCommissionUsd.divide(currentStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
+            nodeInspire.setUserFoundationInspireRate(userFoundationUsd.divide(currentStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
+            nodeInspireList.add(nodeInspire);
         }
+
+        // update node inspire
+        nodeInspireMapper.deleteAll();
+        nodeInspireMapper.batchInsert(nodeInspireList);
     }
 
     private BigDecimal getReleaseAndCommissionOng(BigDecimal value, BigDecimal ong, BigDecimal totalConsensusInspire) {
