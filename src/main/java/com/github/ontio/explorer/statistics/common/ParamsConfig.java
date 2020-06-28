@@ -44,6 +44,8 @@ public class ParamsConfig {
 
     private int inspireActiveTime;
 
+    public int releaseOngRatio;
+
     public interface Field {
 
         String maxStakingChangeCount = "maxStakingChangeCount";
