@@ -114,14 +114,16 @@ public class ConsensusNodeService {
             Long maintainEndBlk = roundStartBlock;
             maintainBlkRndHistory(size, maintainEndBlk, stakingChangeCount);
         }
-        long roundEndBlock = roundStartBlock + stakingChangeCount;
+        long roundEndBlock = roundStartBlock + stakingChangeCount - 1;
         NodeOverviewHistory overviewHistory = new NodeOverviewHistory();
         overviewHistory.setRndStartBlk(roundStartBlock);
         List<NodeOverviewHistory> list = nodeOverviewHistoryMapper.select(overviewHistory);
         if (CollectionUtils.isEmpty(list)) {
+            int cycle = ontSdkService.getGovernanceView().view;
             int roundStartTime = ontSdkService.getBlockTimeByHeight((int) roundStartBlock);
             overviewHistory.setRndStartTime(roundStartTime);
             overviewHistory.setRndEndBlk(roundEndBlock);
+            overviewHistory.setCycle(cycle);
             nodeOverviewHistoryMapper.updateRnkEndTime(roundStartBlock, roundStartTime);
             nodeOverviewHistoryMapper.insertSelective(overviewHistory);
         }
@@ -129,17 +131,29 @@ public class ConsensusNodeService {
 
     private void maintainBlkRndHistory(int size, long maintainEndBlk, int stakingChangeCount) {
         int loop = 10 - size;
+        int currentCycle = ontSdkService.getGovernanceView().view;
         for (int i = 0; i < loop; i++) {
             int times = loop - i;
             long roundStartBlock = maintainEndBlk - stakingChangeCount * times;
-            long roundEndBlock = roundStartBlock + stakingChangeCount;
+            long roundEndBlock = roundStartBlock + stakingChangeCount - 1;
             int roundStartTime = ontSdkService.getBlockTimeByHeight((int) roundStartBlock);
             int roundEndTime = ontSdkService.getBlockTimeByHeight((int) roundEndBlock);
+
+            // 获取周期数
+            int cycle = currentCycle - times;
+            NodeOverviewHistory lastHistory = new NodeOverviewHistory();
+            lastHistory.setRndEndBlk(roundStartBlock - 1);
+            lastHistory = nodeOverviewHistoryMapper.selectOne(lastHistory);
+            if (lastHistory != null) {
+                cycle = lastHistory.getCycle() + 1;
+            }
+
             NodeOverviewHistory history = new NodeOverviewHistory();
             history.setRndStartBlk(roundStartBlock);
             history.setRndEndBlk(roundEndBlock);
             history.setRndStartTime(roundStartTime);
             history.setRndEndTime(roundEndTime);
+            history.setCycle(cycle);
             nodeOverviewHistoryMapper.insertSelective(history);
         }
     }
@@ -460,8 +474,8 @@ public class ConsensusNodeService {
         String ontResp = HttpClientUtil.getRequest(paramsConfig.getExplorerUrl() + "tokens/prices", params, new HashMap<>());
         String ontPrice = JSONObject.parseObject(ontResp).getJSONObject("result").getJSONObject("prices").getJSONObject("USD").getString("price");
 
-        BigDecimal ong = new BigDecimal(ongPrice).setScale(2,BigDecimal.ROUND_HALF_UP);
-        BigDecimal ont = new BigDecimal(ontPrice).setScale(2,BigDecimal.ROUND_HALF_UP);
+        BigDecimal ong = new BigDecimal(ongPrice).setScale(2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal ont = new BigDecimal(ontPrice).setScale(2, BigDecimal.ROUND_HALF_UP);
 
         // 节点的收益计算
         List<NodeInspire> nodeInspireList = new ArrayList<>();
@@ -512,10 +526,10 @@ public class ConsensusNodeService {
             BigDecimal finalUserCommission = finalCommission.multiply(userProportion);
             BigDecimal finalNodeCommission = finalCommission.multiply(nodeProportion);
 
-            if (totalPos.compareTo(BigDecimal.ZERO)==0) {
+            if (totalPos.compareTo(BigDecimal.ZERO) == 0) {
                 totalPos = new BigDecimal(1);
             }
-            if (userStake.compareTo(BigDecimal.ZERO)==0) {
+            if (userStake.compareTo(BigDecimal.ZERO) == 0) {
                 userStake = new BigDecimal(1);
             }
 
@@ -543,12 +557,12 @@ public class ConsensusNodeService {
             nodeInspire.setNodeFoundationInspire(foundationInspire.longValue());
             nodeInspire.setUserFoundationInspire(userFoundationInspire.longValue());
 
-            nodeInspire.setNodeReleaseInspireRate(nodeReleaseUsd.divide(nodeStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
-            nodeInspire.setNodeCommissionInspireRate(nodeCommissionUsd.divide(nodeStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
-            nodeInspire.setNodeFoundationInspireRate(nodeFoundationUsd.divide(nodeStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
-            nodeInspire.setUserReleaseInspireRate(userReleaseUsd.divide(totalPosUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
-            nodeInspire.setUserCommissionInspireRate(userCommissionUsd.divide(totalPosUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
-            nodeInspire.setUserFoundationInspireRate(userFoundationUsd.divide(userStakeUsd,4,BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2,BigDecimal.ROUND_HALF_UP).toPlainString()+"%");
+            nodeInspire.setNodeReleaseInspireRate(nodeReleaseUsd.divide(nodeStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setNodeCommissionInspireRate(nodeCommissionUsd.divide(nodeStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setNodeFoundationInspireRate(nodeFoundationUsd.divide(nodeStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setUserReleaseInspireRate(userReleaseUsd.divide(totalPosUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setUserCommissionInspireRate(userCommissionUsd.divide(totalPosUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setUserFoundationInspireRate(userFoundationUsd.divide(userStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
             nodeInspireList.add(nodeInspire);
         }
 
