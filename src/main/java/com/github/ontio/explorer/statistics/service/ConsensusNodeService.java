@@ -550,19 +550,19 @@ public class ConsensusNodeService {
             nodeInspire.setCurrentStake(nodeInfoOnChain.getCurrentStake());
             nodeInspire.setInitPos(nodeInfoOnChain.getInitPos());
             nodeInspire.setTotalPos(nodeInfoOnChain.getTotalPos());
-            nodeInspire.setNodeReleaseInspire(finalNodeReleaseOng.longValue());
-            nodeInspire.setUserReleaseInspire(finalUserReleaseOng.longValue());
-            nodeInspire.setNodeCommissionInspire(finalNodeCommission.longValue());
-            nodeInspire.setUserCommissionInspire(finalUserCommission.longValue());
-            nodeInspire.setNodeFoundationInspire(foundationInspire.longValue());
-            nodeInspire.setUserFoundationInspire(userFoundationInspire.longValue());
+            nodeInspire.setNodeReleasedOngIncentive(finalNodeReleaseOng.longValue());
+            nodeInspire.setUserReleasedOngIncentive(finalUserReleaseOng.longValue());
+            nodeInspire.setNodeGasFeeIncentive(finalNodeCommission.longValue());
+            nodeInspire.setUserGasFeeIncentive(finalUserCommission.longValue());
+            nodeInspire.setNodeFoundationBonusIncentive(foundationInspire.longValue());
+            nodeInspire.setUserFoundationBonusIncentive(userFoundationInspire.longValue());
 
-            nodeInspire.setNodeReleaseInspireRate(nodeReleaseUsd.divide(nodeStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
-            nodeInspire.setNodeCommissionInspireRate(nodeCommissionUsd.divide(nodeStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
-            nodeInspire.setNodeFoundationInspireRate(nodeFoundationUsd.divide(nodeStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
-            nodeInspire.setUserReleaseInspireRate(userReleaseUsd.divide(totalPosUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
-            nodeInspire.setUserCommissionInspireRate(userCommissionUsd.divide(totalPosUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
-            nodeInspire.setUserFoundationInspireRate(userFoundationUsd.divide(userStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setNodeReleasedOngIncentiveRate(nodeReleaseUsd.divide(nodeStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setNodeGasFeeIncentiveRate(nodeCommissionUsd.divide(nodeStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setNodeFoundationBonusIncentiveRate(nodeFoundationUsd.divide(nodeStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setUserReleasedOngIncentiveRate(userReleaseUsd.divide(totalPosUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setUserGasFeeIncentiveRate(userCommissionUsd.divide(totalPosUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            nodeInspire.setUserFoundationBonusIncentiveRate(userFoundationUsd.divide(userStakeUsd, 4, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
             nodeInspireList.add(nodeInspire);
         }
 

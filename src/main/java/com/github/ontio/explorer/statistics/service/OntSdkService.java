@@ -2,6 +2,7 @@ package com.github.ontio.explorer.statistics.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.github.ontio.OntSdk;
+import com.github.ontio.account.Account;
 import com.github.ontio.common.Address;
 import com.github.ontio.common.Helper;
 import com.github.ontio.core.block.Block;
@@ -122,4 +123,17 @@ public class OntSdkService {
         }
     }
 
+    /**
+     * verify signature by publicKey
+     *
+     * @param publicKey
+     * @param origData
+     * @param signatureStr
+     * @return
+     */
+    public boolean verifySignatureByPublicKey(String publicKey, byte[] origData, String signatureStr) throws Exception {
+        Account account = new Account(false, Helper.hexToBytes(publicKey));
+        Boolean verify = account.verifySignature(origData, Helper.hexToBytes(signatureStr));
+        return verify;
+    }
 }

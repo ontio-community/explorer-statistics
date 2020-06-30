@@ -2,6 +2,7 @@ package com.github.ontio.explorer.statistics.controller;
 
 import com.github.ontio.explorer.statistics.common.Response;
 import com.github.ontio.explorer.statistics.common.Result;
+import com.github.ontio.explorer.statistics.model.dto.UpdateOffChainNodeInfoDto;
 import com.github.ontio.explorer.statistics.service.ConfigService;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +38,12 @@ public class ConfigController {
         return new Response(Result.SUCCESS, count);
     }
 
-
+    @ApiOperation(value = "insert or update node register information by public key")
+    @PostMapping(value = "/off-chain-info")
+    public Response updateOffChainInfoByPublicKey(@RequestBody UpdateOffChainNodeInfoDto updateOffChainNodeInfoDto) throws Exception {
+        Response response = configService.updateOffChainInfoByPublicKey(updateOffChainNodeInfoDto);
+        return response;
+    }
 
 
 }
