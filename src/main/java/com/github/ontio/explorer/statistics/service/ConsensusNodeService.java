@@ -124,7 +124,7 @@ public class ConsensusNodeService {
             overviewHistory.setRndStartTime(roundStartTime);
             overviewHistory.setRndEndBlk(roundEndBlock);
             overviewHistory.setCycle(cycle);
-            nodeOverviewHistoryMapper.updateRnkEndTime(roundStartBlock, roundStartTime);
+            nodeOverviewHistoryMapper.updateRnkEndTime(roundStartBlock - 1, roundStartTime);
             nodeOverviewHistoryMapper.insertSelective(overviewHistory);
         }
     }
