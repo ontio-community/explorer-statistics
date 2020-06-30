@@ -527,10 +527,10 @@ public class ConsensusNodeService {
             BigDecimal finalNodeCommission = finalCommission.multiply(nodeProportion);
 
             if (totalPos.compareTo(BigDecimal.ZERO) == 0) {
-                totalPos = new BigDecimal(1);
+                totalPos = new BigDecimal(paramsConfig.insteadZeroPos);
             }
             if (userStake.compareTo(BigDecimal.ZERO) == 0) {
-                userStake = new BigDecimal(1);
+                userStake = new BigDecimal(paramsConfig.insteadZeroPos);
             }
 
             BigDecimal nodeStakeUsd = nodeStake.multiply(ont);
