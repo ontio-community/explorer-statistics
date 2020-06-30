@@ -12,18 +12,18 @@
         <result column="current_stake" jdbcType="BIGINT" property="currentStake"/>
         <result column="init_pos" jdbcType="BIGINT" property="initPos"/>
         <result column="total_pos" jdbcType="BIGINT" property="totalPos"/>
-        <result column="node_release_inspire" jdbcType="BIGINT" property="nodeReleaseInspire"/>
-        <result column="node_release_inspire_rate" jdbcType="VARCHAR" property="nodeReleaseInspireRate"/>
-        <result column="user_release_inspire" jdbcType="BIGINT" property="userReleaseInspire"/>
-        <result column="user_release_inspire_rate" jdbcType="VARCHAR" property="userReleaseInspireRate"/>
-        <result column="node_commission_inspire" jdbcType="BIGINT" property="nodeCommissionInspire"/>
-        <result column="node_commission_inspire_rate" jdbcType="VARCHAR" property="nodeCommissionInspireRate"/>
-        <result column="user_commission_inspire" jdbcType="BIGINT" property="userCommissionInspire"/>
-        <result column="user_commission_inspire_rate" jdbcType="VARCHAR" property="userCommissionInspireRate"/>
-        <result column="node_foundation_inspire" jdbcType="BIGINT" property="nodeFoundationInspire"/>
-        <result column="node_foundation_inspire_rate" jdbcType="VARCHAR" property="nodeFoundationInspireRate"/>
-        <result column="user_foundation_inspire" jdbcType="BIGINT" property="userFoundationInspire"/>
-        <result column="user_foundation_inspire_rate" jdbcType="VARCHAR" property="userFoundationInspireRate"/>
+        <result column="node_released_ong_incentive" jdbcType="BIGINT" property="nodeReleasedOngIncentive"/>
+        <result column="node_released_ong_incentive_rate" jdbcType="VARCHAR" property="nodeReleasedOngIncentiveRate"/>
+        <result column="user_released_ong_incentive" jdbcType="BIGINT" property="userReleasedOngIncentive"/>
+        <result column="user_released_ong_incentive_rate" jdbcType="VARCHAR" property="userReleasedOngIncentiveRate"/>
+        <result column="node_gas_fee_incentive" jdbcType="BIGINT" property="nodeGasFeeIncentive"/>
+        <result column="node_gas_fee_incentive_rate" jdbcType="VARCHAR" property="nodeGasFeeIncentiveRate"/>
+        <result column="user_gas_fee_incentive" jdbcType="BIGINT" property="userGasFeeIncentive"/>
+        <result column="user_gas_fee_incentive_rate" jdbcType="VARCHAR" property="userGasFeeIncentiveRate"/>
+        <result column="node_foundation_bonus_incentive" jdbcType="BIGINT" property="nodeFoundationBonusIncentive"/>
+        <result column="node_foundation_bonus_incentive_rate" jdbcType="VARCHAR" property="nodeFoundationBonusIncentiveRate"/>
+        <result column="user_foundation_bonus_incentive" jdbcType="BIGINT" property="userFoundationBonusIncentive"/>
+        <result column="user_foundation_bonus_incentive_rate" jdbcType="VARCHAR" property="userFoundationBonusIncentiveRate"/>
     </resultMap>
     <!--
     self-defined SQL
@@ -33,19 +33,19 @@
         FROM tbl_node_inspire
     </delete>
     <insert id="batchInsert" parameterType="java.util.List">
-        INSERT INTO tbl_node_inspire ( public_key, address, name, status, current_stake, init_pos, total_pos, node_release_inspire, node_release_inspire_rate,
-        user_release_inspire, user_release_inspire_rate, node_commission_inspire, node_commission_inspire_rate, user_commission_inspire,
-        user_commission_inspire_rate, node_foundation_inspire, node_foundation_inspire_rate, user_foundation_inspire, user_foundation_inspire_rate)
+        INSERT INTO tbl_node_inspire ( public_key, address, name, status, current_stake, init_pos, total_pos, node_released_ong_incentive, node_released_ong_incentive_rate,
+        user_released_ong_incentive, user_released_ong_incentive_rate, node_gas_fee_incentive, node_gas_fee_incentive_rate, user_gas_fee_incentive,
+        user_gas_fee_incentive_rate, node_foundation_bonus_incentive, node_foundation_bonus_incentive_rate, user_foundation_bonus_incentive, user_foundation_bonus_incentive_rate)
         values
         <foreach collection="list" index="index" item="item" separator=",">
             (#{item.publicKey,jdbcType=VARCHAR}, #{item.address,jdbcType=VARCHAR},#{item.name,jdbcType=VARCHAR},
             #{item.status,jdbcType=INTEGER},#{item.currentStake,jdbcType=BIGINT},#{item.initPos,jdbcType=BIGINT},#{item.totalPos,jdbcType=BIGINT},
-            #{item.nodeReleaseInspire,jdbcType=BIGINT},#{item.nodeReleaseInspireRate,jdbcType=VARCHAR},
-            #{item.userReleaseInspire,jdbcType=BIGINT},#{item.userReleaseInspireRate,jdbcType=VARCHAR},
-            #{item.nodeCommissionInspire,jdbcType=BIGINT},#{item.nodeCommissionInspireRate,jdbcType=VARCHAR},
-            #{item.userCommissionInspire,jdbcType=BIGINT},#{item.userCommissionInspireRate,jdbcType=VARCHAR},
-            #{item.nodeFoundationInspire,jdbcType=BIGINT},#{item.nodeFoundationInspireRate,jdbcType=VARCHAR},
-            #{item.userFoundationInspire,jdbcType=BIGINT},#{item.userFoundationInspireRate,jdbcType=VARCHAR})
+            #{item.nodeReleasedOngIncentive,jdbcType=BIGINT},#{item.nodeReleasedOngIncentiveRate,jdbcType=VARCHAR},
+            #{item.userReleasedOngIncentive,jdbcType=BIGINT},#{item.userReleasedOngIncentiveRate,jdbcType=VARCHAR},
+            #{item.nodeGasFeeIncentive,jdbcType=BIGINT},#{item.nodeGasFeeIncentiveRate,jdbcType=VARCHAR},
+            #{item.userGasFeeIncentive,jdbcType=BIGINT},#{item.userGasFeeIncentiveRate,jdbcType=VARCHAR},
+            #{item.nodeFoundationBonusIncentive,jdbcType=BIGINT},#{item.nodeFoundationBonusIncentiveRate,jdbcType=VARCHAR},
+            #{item.userFoundationBonusIncentive,jdbcType=BIGINT},#{item.userFoundationBonusIncentiveRate,jdbcType=VARCHAR})
         </foreach>
     </insert>
 </mapper>
