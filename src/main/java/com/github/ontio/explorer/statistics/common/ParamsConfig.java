@@ -46,6 +46,8 @@ public class ParamsConfig {
 
     public int releaseOngRatio;
 
+    public int insteadZeroPos;
+
     public interface Field {
 
         String maxStakingChangeCount = "maxStakingChangeCount";
