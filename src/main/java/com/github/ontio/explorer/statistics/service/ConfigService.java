@@ -8,6 +8,7 @@ import com.github.ontio.explorer.statistics.mapper.ConfigMapper;
 import com.github.ontio.explorer.statistics.mapper.NodeInfoOffChainMapper;
 import com.github.ontio.explorer.statistics.model.Config;
 import com.github.ontio.explorer.statistics.model.NodeInfoOffChain;
+import com.github.ontio.explorer.statistics.model.dto.InsertOffChainNodeInfoDto;
 import com.github.ontio.explorer.statistics.model.dto.UpdateOffChainNodeInfoDto;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,5 +89,30 @@ public class ConfigService {
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
         }
         return new Response(0, "SUCCESS", "SUCCESS");
+    }
+
+    public Response insertOffChainInfo(InsertOffChainNodeInfoDto insertOffChainNodeInfoDto) throws Exception {
+        String address = insertOffChainNodeInfoDto.getAddress();
+        String name = insertOffChainNodeInfoDto.getName();
+        String publicKey = insertOffChainNodeInfoDto.getPublicKey();
+        if (StringUtils.isEmpty(publicKey)) {
+            return new Response(61001, "Public key is blank", "");
+        }
+        String peerInfo = ontSdkService.getPeerInfo(publicKey);
+        if (!StringUtils.isEmpty(peerInfo)) {
+            NodeInfoOffChain nodeInfoOffChain = new NodeInfoOffChain();
+            nodeInfoOffChain.setPublicKey(publicKey);
+            nodeInfoOffChain.setAddress(address);
+            nodeInfoOffChain.setName(name);
+            nodeInfoOffChain.setVerification(0);
+            nodeInfoOffChain.setOntId("");
+            nodeInfoOffChain.setNodeType(1);
+            nodeInfoOffChain.setOpenFlag(true);
+            nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
+            return new Response(0, "SUCCESS", "SUCCESS");
+        } else {
+            return new Response(61003, "Node not found on chain", "");
+        }
+
     }
 }

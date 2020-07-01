@@ -136,4 +136,9 @@ public class OntSdkService {
         Boolean verify = account.verifySignature(origData, Helper.hexToBytes(signatureStr));
         return verify;
     }
+
+    public String getPeerInfo(String publicKey) throws Exception {
+        String peerInfo = sdk.nativevm().governance().getPeerInfo(publicKey);
+        return peerInfo;
+    }
 }
