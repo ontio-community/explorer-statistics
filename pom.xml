@@ -93,7 +93,7 @@
         <dependency>
             <groupId>com.github.ontio</groupId>
             <artifactId>ontology-sdk-java</artifactId>
-            <version>1.0.13</version>
+            <version>1.10.1</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>

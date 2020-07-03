@@ -47,4 +47,21 @@ public class NodeInfoOffChain {
     @Column(name = "social_media")
     private String socialMedia;
 
+    private String telegram;
+
+    private String twitter;
+
+    private String facebook;
+
+    @Column(name = "open_mail")
+    private String openMail;
+
+    @Column(name = "contact_mail")
+    private String contactMail;
+
+    @Column(name = "open_flag")
+    private Boolean openFlag;
+
+    private Integer verification;
+
 }

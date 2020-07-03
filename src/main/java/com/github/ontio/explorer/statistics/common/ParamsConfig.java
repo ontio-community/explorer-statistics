@@ -18,6 +18,8 @@ public class ParamsConfig {
 
     private List<String> hosts = new ArrayList<>();
 
+    private List<String> nodeFoundationAddress = new ArrayList<>();
+
     private String consensusNodeDetailUrl;
 
     private String nodeMapUrl;
@@ -37,6 +39,14 @@ public class ParamsConfig {
     private int totalAggregationDateId;
 
     private boolean reSyncEnabled = true;
+
+    private String explorerUrl;
+
+    private int inspireActiveTime;
+
+    public int releaseOngRatio;
+
+    public int insteadZeroPos;
 
     public interface Field {
 

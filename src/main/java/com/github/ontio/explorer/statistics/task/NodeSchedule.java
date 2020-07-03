@@ -94,4 +94,15 @@ public class NodeSchedule {
         }
     }
 
+    @Scheduled(initialDelay = 10 * 1000, fixedDelayString = "${node-schedule-task.update-node-annualized-yield}")
+    public void updateNodeAnnualizedYield() {
+        try {
+            log.info("Updating node annualized yield task begin");
+            consensusNodeService.updateNodeAnnualizedYield();
+            log.info("Updating node annualized yield task end");
+        } catch (Exception e) {
+            log.warn("Updating node annualized yield failed: {}", e.getMessage());
+        }
+    }
+
 }

@@ -1,6 +1,11 @@
 package com.github.ontio.explorer.statistics.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.github.ontio.OntSdk;
+import com.github.ontio.account.Account;
+import com.github.ontio.common.Address;
+import com.github.ontio.common.Helper;
+import com.github.ontio.core.block.Block;
 import com.github.ontio.core.governance.Configuration;
 import com.github.ontio.core.governance.GovernanceView;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
@@ -82,6 +87,18 @@ public class OntSdkService {
         }
     }
 
+    int getBlockTimeByHeight(int height) {
+        try {
+            Block block = sdk.getRestful().getBlock(height);
+            return block.timestamp;
+        } catch (ConnectorException | IOException | SDKException e) {
+            log.warn("Getting block height failed: {}", e.getMessage());
+            switchSyncNode();
+            log.info("Getting block height again");
+            return getBlockTimeByHeight(height);
+        }
+    }
+
     void switchSyncNode() {
         if (currentNodeIndex.get() >= nodeCount) {
             currentNodeIndex.set(0);
@@ -94,4 +111,34 @@ public class OntSdkService {
         }
     }
 
+    public String getAuthorizeInfo(String publicKey, String address) {
+        try {
+            Address addr = Address.decodeBase58(address);
+            return sdk.nativevm().governance().getAuthorizeInfo(publicKey, addr);
+        } catch (SDKException e) {
+            log.warn("Getting authorize info failed: {}", e.getMessage());
+            switchSyncNode();
+            log.info("Getting authorize info again");
+            return getAuthorizeInfo(publicKey, address);
+        }
+    }
+
+    /**
+     * verify signature by publicKey
+     *
+     * @param publicKey
+     * @param origData
+     * @param signatureStr
+     * @return
+     */
+    public boolean verifySignatureByPublicKey(String publicKey, byte[] origData, String signatureStr) throws Exception {
+        Account account = new Account(false, Helper.hexToBytes(publicKey));
+        Boolean verify = account.verifySignature(origData, Helper.hexToBytes(signatureStr));
+        return verify;
+    }
+
+    public String getPeerInfo(String publicKey) throws Exception {
+        String peerInfo = sdk.nativevm().governance().getPeerInfo(publicKey);
+        return peerInfo;
+    }
 }
