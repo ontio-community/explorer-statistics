@@ -76,8 +76,11 @@ public class ConfigService {
         }
         String nodeInfoStr = new String(nodeInfoBytes, "UTF-8");
         NodeInfoOffChain nodeInfoOffChain = JSONObject.parseObject(nodeInfoStr, NodeInfoOffChain.class);
-        nodeInfoOffChain.setVerification(0);
-        nodeInfoOffChain.setOntId("");
+
+        String ontId = nodeInfoOffChain.getOntId();
+        if (ontId == null) {
+            nodeInfoOffChain.setOntId("");
+        }
         nodeInfoOffChain.setNodeType(1);
         String nodePublicKey = nodeInfoOffChain.getPublicKey();
         String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);

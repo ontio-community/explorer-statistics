@@ -28,4 +28,32 @@
         SET rnd_end_time = #{roundEndTime}
         WHERE rnd_end_blk = #{roundEndBlock};
     </update>
+
+    <select id="queryRoundByTimeStamp" resultMap="BaseResultMap">
+        SELECT id,
+        rnd_start_blk,
+        rnd_end_blk,
+        rnd_start_time,
+        rnd_end_time,
+        cycle
+        FROM tbl_node_overview_history
+        WHERE rnd_start_time <![CDATA[ < ]]> #{time}
+        AND (rnd_end_time <![CDATA[ > ]]> #{time} OR rnd_end_time IS NULL)
+        OR rnd_start_time <![CDATA[ > ]]> #{time}
+        ORDER BY cycle ASC;
+    </select>
+
+    <select id="queryRoundByCycle" resultMap="BaseResultMap">
+        SELECT id,
+        rnd_start_blk,
+        rnd_end_blk,
+        rnd_start_time,
+        rnd_end_time,
+        cycle
+        FROM tbl_node_overview_history
+        WHERE cycle <![CDATA[ > ]]> #{cycle}
+        ORDER BY cycle ASC;
+    </select>
+
+
 </mapper>
