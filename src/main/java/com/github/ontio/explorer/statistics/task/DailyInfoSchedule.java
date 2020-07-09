@@ -48,14 +48,4 @@ public class DailyInfoSchedule {
         log.info("Updating approved contract information task end");
     }
 
-    @Scheduled(fixedDelayString = "${node-schedule-task.update-node-annualized-yield}")
-    public void updateTotalOngSupply() {
-        try {
-            log.info("Updating total ong supply task begin");
-            statisticsService.updateTotalOngSupply();
-            log.info("Updating total ong supply task end");
-        } catch (Exception e) {
-            log.warn("Updating total ong supply failed: {}", e.getMessage());
-        }
-    }
 }
