@@ -14,4 +14,8 @@ public interface NodeOverviewHistoryMapper extends Mapper<NodeOverviewHistory> {
 
     int updateRnkEndTime(@Param("roundEndBlock") long roundEndBlock, @Param("roundEndTime") int roundEndTime);
 
+    List<NodeOverviewHistory> queryRoundByTimeStamp(@Param("time") Integer time);
+
+    List<NodeOverviewHistory> queryRoundByCycle(@Param("cycle") Integer cycle);
+
 }
