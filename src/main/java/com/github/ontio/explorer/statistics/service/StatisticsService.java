@@ -19,21 +19,16 @@ import com.alibaba.fastjson.JSON;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.common.Constants;
 import com.github.ontio.explorer.statistics.mapper.*;
-import com.github.ontio.explorer.statistics.model.AddressDailySummary;
-import com.github.ontio.explorer.statistics.model.Contract;
-import com.github.ontio.explorer.statistics.model.ContractDailySummary;
-import com.github.ontio.explorer.statistics.model.DailySummary;
+import com.github.ontio.explorer.statistics.model.*;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @NoArgsConstructor
@@ -48,14 +43,17 @@ public class StatisticsService {
     private AddressDailySummaryMapper addrDailySummaryMapper;
     private ContractDailySummaryMapper contractDailySummaryMapper;
     private ParamsConfig paramsConfig;
+    private NodeOverviewHistoryMapper nodeOverviewHistoryMapper;
+    private OngSupplyMapper ongSupplyMapper;
 
+    private static final Integer TIMESTAMP_20200707000000_UTC = 1594080000;
 
     @Autowired
     public StatisticsService(BlockMapper blockMapper, TxDetailTmpMapper txDetailTmpMapper,
                              ContractMapper contractMapper, TxDetailDailyMapper txDetailDailyMapper,
                              DailySummaryMapper dailySummaryMapper, OntidTxDetailMapper ontidTxDetailMapper,
                              AddressDailySummaryMapper addrDailySummaryMapper, ContractDailySummaryMapper contractDailySummaryMapper,
-                             ParamsConfig paramsConfig) {
+                             ParamsConfig paramsConfig, NodeOverviewHistoryMapper nodeOverviewHistoryMapper, OngSupplyMapper ongSupplyMapper) {
         this.blockMapper = blockMapper;
         this.txDetailTmpMapper = txDetailTmpMapper;
         this.contractMapper = contractMapper;
@@ -65,6 +63,8 @@ public class StatisticsService {
         this.addrDailySummaryMapper = addrDailySummaryMapper;
         this.contractDailySummaryMapper = contractDailySummaryMapper;
         this.paramsConfig = paramsConfig;
+        this.nodeOverviewHistoryMapper = nodeOverviewHistoryMapper;
+        this.ongSupplyMapper = ongSupplyMapper;
     }
 
     public void updateDailySummary() {
@@ -389,6 +389,53 @@ public class StatisticsService {
         }
 
         return map;
+    }
+
+    public void updateTotalOngSupply() {
+        List<OngSupply> ongSupplies = ongSupplyMapper.selectAll();
+        if (CollectionUtils.isEmpty(ongSupplies)) {
+            // first calculate and save
+            List<NodeOverviewHistory> rounds = nodeOverviewHistoryMapper.queryRoundByTimeStamp(TIMESTAMP_20200707000000_UTC);
+            Integer cycle = 0;
+            BigDecimal roundsOngSupply = BigDecimal.ZERO;
+            for (NodeOverviewHistory history : rounds) {
+                Integer rndStartTime = history.getRndStartTime();
+                Integer rndEndTime = history.getRndEndTime();
+                if (rndEndTime != null) {
+                    cycle = history.getCycle();
+                    Integer startTime = rndStartTime > TIMESTAMP_20200707000000_UTC ? rndStartTime : TIMESTAMP_20200707000000_UTC;
+                    int roundOngSupply = rndEndTime - startTime;
+                    BigDecimal roundOngSupplyDecimal = new BigDecimal(roundOngSupply);
+                    roundsOngSupply = roundsOngSupply.add(roundOngSupplyDecimal);
+                }
+            }
+            if (cycle != 0) {
+                OngSupply ongSupply = new OngSupply();
+                ongSupply.setOngSupply(roundsOngSupply);
+                ongSupply.setCycle(cycle);
+                ongSupplyMapper.insertSelective(ongSupply);
+            }
+        } else {
+            // update
+            OngSupply ongSupply = ongSupplies.get(0);
+            Integer cycle = ongSupply.getCycle();
+            BigDecimal ongSupplied = ongSupply.getOngSupply();
+            List<NodeOverviewHistory> rounds = nodeOverviewHistoryMapper.queryRoundByCycle(cycle);
+            for (NodeOverviewHistory history : rounds) {
+                Integer rndStartTime = history.getRndStartTime();
+                Integer rndEndTime = history.getRndEndTime();
+                if (rndEndTime != null) {
+                    cycle = history.getCycle();
+                    Integer startTime = rndStartTime > TIMESTAMP_20200707000000_UTC ? rndStartTime : TIMESTAMP_20200707000000_UTC;
+                    int roundOngSupply = rndEndTime - startTime;
+                    BigDecimal roundOngSupplyDecimal = new BigDecimal(roundOngSupply);
+                    ongSupplied = ongSupplied.add(roundOngSupplyDecimal);
+                }
+            }
+            ongSupply.setOngSupply(ongSupplied);
+            ongSupply.setCycle(cycle);
+            ongSupplyMapper.updateByPrimaryKeySelective(ongSupply);
+        }
     }
 }
 

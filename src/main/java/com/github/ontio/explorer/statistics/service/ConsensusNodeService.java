@@ -61,6 +61,7 @@ public class ConsensusNodeService {
     private NodeInspireMapper nodeInspireMapper;
 
     private OntSdkService ontSdkService;
+    private StatisticsService statisticsService;
 
     @Autowired
     public ConsensusNodeService(ParamsConfig paramsConfig,
@@ -73,7 +74,8 @@ public class ConsensusNodeService {
                                 NodeInfoOffChainMapper nodeInfoOffChainMapper,
                                 NodeOverviewHistoryMapper nodeOverviewHistoryMapper,
                                 TxDetailMapper txDetailMapper,
-                                NodeInspireMapper nodeInspireMapper) {
+                                NodeInspireMapper nodeInspireMapper,
+                                StatisticsService statisticsService) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -85,6 +87,7 @@ public class ConsensusNodeService {
         this.nodeOverviewHistoryMapper = nodeOverviewHistoryMapper;
         this.txDetailMapper = txDetailMapper;
         this.nodeInspireMapper = nodeInspireMapper;
+        this.statisticsService = statisticsService;
     }
 
     public void updateBlockCountToNextRound() {
@@ -126,6 +129,9 @@ public class ConsensusNodeService {
             overviewHistory.setCycle(cycle);
             nodeOverviewHistoryMapper.updateRnkEndTime(roundStartBlock - 1, roundStartTime);
             nodeOverviewHistoryMapper.insertSelective(overviewHistory);
+
+            // update node round ong supply
+            statisticsService.updateTotalOngSupply();
         }
     }
 

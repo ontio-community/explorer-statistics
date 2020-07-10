@@ -47,4 +47,5 @@ public class DailyInfoSchedule {
         statisticsService.updateApprovedContractInfo();
         log.info("Updating approved contract information task end");
     }
+
 }
