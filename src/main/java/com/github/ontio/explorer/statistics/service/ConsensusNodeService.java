@@ -61,7 +61,10 @@ public class ConsensusNodeService {
     private NodeInspireMapper nodeInspireMapper;
 
     private OntSdkService ontSdkService;
+
     private StatisticsService statisticsService;
+
+    private InspireCalculationParamsMapper inspireCalculationParamsMapper;
 
     @Autowired
     public ConsensusNodeService(ParamsConfig paramsConfig,
@@ -75,7 +78,8 @@ public class ConsensusNodeService {
                                 NodeOverviewHistoryMapper nodeOverviewHistoryMapper,
                                 TxDetailMapper txDetailMapper,
                                 NodeInspireMapper nodeInspireMapper,
-                                StatisticsService statisticsService) {
+                                StatisticsService statisticsService,
+                                InspireCalculationParamsMapper inspireCalculationParamsMapper) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -88,6 +92,7 @@ public class ConsensusNodeService {
         this.txDetailMapper = txDetailMapper;
         this.nodeInspireMapper = nodeInspireMapper;
         this.statisticsService = statisticsService;
+        this.inspireCalculationParamsMapper = inspireCalculationParamsMapper;
     }
 
     public void updateBlockCountToNextRound() {
@@ -380,6 +385,7 @@ public class ConsensusNodeService {
             return;
         }
         List<String> addressList = paramsConfig.getNodeFoundationAddress();
+        List<String> nodeFoundationPublicKeys = paramsConfig.getNodeFoundationPublicKeys();
         List<BigDecimal> fpFuList = new ArrayList<>();
         List<NodeInfoOnChain> consensusNodes = new ArrayList<>();
         List<NodeInfoOnChain> candidateNodes = new ArrayList<>();
@@ -390,12 +396,13 @@ public class ConsensusNodeService {
         for (int i = 0; i < nodeInfoOnChains.size(); i++) {
             NodeInfoOnChain nodeInfoOnChain = nodeInfoOnChains.get(i);
             Integer status = nodeInfoOnChain.getStatus();
+            String publicKey = nodeInfoOnChain.getPublicKey();
             if (status.equals(2)) {
                 consensusNodes.add(nodeInfoOnChain);
             } else if (status.equals(1)) {
                 candidateNodes.add(nodeInfoOnChain);
             }
-            if (i < 7) {
+            if (nodeFoundationPublicKeys.contains(publicKey)) {
                 Long fu = 0L;
                 Long currentStake = nodeInfoOnChain.getCurrentStake();
                 Long fp = nodeInfoOnChain.getInitPos();
@@ -470,6 +477,20 @@ public class ConsensusNodeService {
         }
         commission = lastMonthCommission.multiply(new BigDecimal(365)).divide(new BigDecimal(30), 2, BigDecimal.ROUND_HALF_UP);
 
+        List<InspireCalculationParams> inspireCalculationParams = inspireCalculationParamsMapper.selectAll();
+        if (CollectionUtils.isEmpty(inspireCalculationParams)) {
+            InspireCalculationParams calculationParams = new InspireCalculationParams();
+            calculationParams.setSecondRoundIncentive(second);
+            calculationParams.setGasFee(commission);
+            inspireCalculationParamsMapper.insertSelective(calculationParams);
+        } else {
+            InspireCalculationParams calculationParams = inspireCalculationParams.get(0);
+            calculationParams.setSecondRoundIncentive(second);
+            calculationParams.setGasFee(commission);
+            inspireCalculationParamsMapper.updateByPrimaryKeySelective(calculationParams);
+        }
+
+
         Map<String, Object> params = new HashMap<>();
         params.put("token", "ong");
         params.put("fiat", "USD");
@@ -494,6 +515,7 @@ public class ConsensusNodeService {
             BigDecimal userFoundationInspire = BigDecimal.ZERO;
 
             NodeInfoOnChain nodeInfoOnChain = nodeInfoOnChains.get(i);
+            String publicKey = nodeInfoOnChain.getPublicKey();
             Integer status = nodeInfoOnChain.getStatus();
             String proportion = nodeInfoOnChain.getNodeProportion().replace("%", "");
             BigDecimal userProportion = new BigDecimal(proportion).divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);
@@ -504,7 +526,6 @@ public class ConsensusNodeService {
             BigDecimal userStake = new BigDecimal(nodeInfoOnChain.getTotalPos());
 
             if (status.equals(2)) {
-                String publicKey = nodeInfoOnChain.getPublicKey();
                 BigDecimal consensusInspire = consensusInspireMap.get(publicKey);
                 // 共识节点手续费和释放的 ONG
                 finalReleaseOng = getReleaseAndCommissionOng(consensusInspire, releaseOng, totalConsensusInspire);
@@ -514,7 +535,7 @@ public class ConsensusNodeService {
                 finalReleaseOng = getReleaseAndCommissionOng(currentStake, releaseOng, candidateTotalStake);
                 finalCommission = getReleaseAndCommissionOng(currentStake, commission, candidateTotalStake);
             }
-            if (i < 7) {
+            if (nodeFoundationPublicKeys.contains(publicKey)) {
                 BigDecimal fp = new BigDecimal(nodeInfoOnChain.getInitPos());
                 BigDecimal siSubFp = currentStake.subtract(fp);
                 foundationInspire = first.multiply(siSubFp).multiply(nodeProportion);
