@@ -420,7 +420,7 @@ public class ConsensusNodeService {
                 fpFuList.add(fuFp);
                 BigDecimal decimal1 = proportion.multiply(new BigDecimal(fu * currentStake)).divide(new BigDecimal(currentStake - fp), 12, BigDecimal.ROUND_HALF_UP);
                 BigDecimal subtract = new BigDecimal(1).subtract(proportion);
-                BigDecimal decimal2 = new BigDecimal(currentStake).multiply(subtract);
+                BigDecimal decimal2 = new BigDecimal(fp).multiply(subtract);
                 BigDecimal sr = decimal1.add(decimal2);
                 totalSr = totalSr.add(sr);
                 totalFuFp = totalFuFp.add(fuFp);
