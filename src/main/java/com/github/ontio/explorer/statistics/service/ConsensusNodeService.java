@@ -494,14 +494,16 @@ public class ConsensusNodeService {
         List<InspireCalculationParams> inspireCalculationParams = inspireCalculationParamsMapper.selectAll();
         if (CollectionUtils.isEmpty(inspireCalculationParams)) {
             InspireCalculationParams calculationParams = new InspireCalculationParams();
-            calculationParams.setSecondRoundIncentive(second);
+            calculationParams.setTotalFpFu(totalFuFp);
+            calculationParams.setTotalSr(totalSr);
             calculationParams.setGasFee(commission);
             calculationParams.setOntPrice(ont);
             calculationParams.setOngPrice(ong);
             inspireCalculationParamsMapper.insertSelective(calculationParams);
         } else {
             InspireCalculationParams calculationParams = inspireCalculationParams.get(0);
-            calculationParams.setSecondRoundIncentive(second);
+            calculationParams.setTotalFpFu(totalFuFp);
+            calculationParams.setTotalSr(totalSr);
             calculationParams.setGasFee(commission);
             calculationParams.setOntPrice(ont);
             calculationParams.setOngPrice(ong);
