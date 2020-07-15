@@ -20,6 +20,8 @@ public class ParamsConfig {
 
     private List<String> nodeFoundationAddress = new ArrayList<>();
 
+    private List<String> nodeFoundationPublicKeys = new ArrayList<>();
+
     private String consensusNodeDetailUrl;
 
     private String nodeMapUrl;
