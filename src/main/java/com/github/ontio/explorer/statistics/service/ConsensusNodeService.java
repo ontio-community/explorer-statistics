@@ -593,7 +593,7 @@ public class ConsensusNodeService {
             nodeInspire.setNodeFoundationBonusIncentiveRate(nodeFoundationUsd.divide(nodeStakeUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
 
             Long maxAuthorize = nodeInfoOnChain.getMaxAuthorize();
-            if (maxAuthorize == 0) {
+            if (maxAuthorize == 0 && nodeInfoOnChain.getTotalPos() == 0) {
                 nodeInspire.setUserReleasedOngIncentive(0L);
                 nodeInspire.setUserGasFeeIncentive(0L);
                 nodeInspire.setUserFoundationBonusIncentive(0L);
