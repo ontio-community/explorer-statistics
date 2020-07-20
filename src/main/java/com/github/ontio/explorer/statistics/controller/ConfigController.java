@@ -53,5 +53,11 @@ public class ConfigController {
         return response;
     }
 
+    @ApiOperation(value = "insert or update node register information by public key")
+    @PostMapping(value = "/off-chain-info/ledger")
+    public Response updateOffChainInfoByLedger(@RequestBody UpdateOffChainNodeInfoDto updateOffChainNodeInfoDto) throws Exception {
+        Response response = configService.updateOffChainInfoByLedger(updateOffChainNodeInfoDto);
+        return response;
+    }
 
 }
