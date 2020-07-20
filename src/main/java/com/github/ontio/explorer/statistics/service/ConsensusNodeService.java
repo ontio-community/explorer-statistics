@@ -384,6 +384,7 @@ public class ConsensusNodeService {
         if (CollectionUtils.isEmpty(nodeInfoOnChains)) {
             return;
         }
+        int preConsensusCount = ontSdkService.getPreConsensusCount();
         List<String> addressList = paramsConfig.getNodeFoundationAddress();
         List<String> nodeFoundationPublicKeys = paramsConfig.getNodeFoundationPublicKeys();
         List<BigDecimal> fpFuList = new ArrayList<>();
@@ -397,9 +398,9 @@ public class ConsensusNodeService {
             NodeInfoOnChain nodeInfoOnChain = nodeInfoOnChains.get(i);
             Integer status = nodeInfoOnChain.getStatus();
             String publicKey = nodeInfoOnChain.getPublicKey();
-            if (status.equals(2)) {
+            if (i < preConsensusCount) {
                 consensusNodes.add(nodeInfoOnChain);
-            } else if (status.equals(1)) {
+            } else {
                 candidateNodes.add(nodeInfoOnChain);
             }
             if (nodeFoundationPublicKeys.contains(publicKey)) {
@@ -531,12 +532,12 @@ public class ConsensusNodeService {
             BigDecimal totalPos = new BigDecimal(nodeInfoOnChain.getTotalPos());
             BigDecimal userStake = new BigDecimal(nodeInfoOnChain.getTotalPos());
 
-            if (status.equals(2)) {
+            if (i < preConsensusCount) {
                 BigDecimal consensusInspire = consensusInspireMap.get(publicKey);
                 // 共识节点手续费和释放的 ONG
                 finalReleaseOng = getReleaseAndCommissionOng(consensusInspire, releaseOng, totalConsensusInspire);
                 finalCommission = getReleaseAndCommissionOng(consensusInspire, commission, totalConsensusInspire);
-            } else if (status.equals(1)) {
+            } else {
                 // 候选节点手续费和释放的 ONG
                 finalReleaseOng = getReleaseAndCommissionOng(currentStake, releaseOng, candidateTotalStake);
                 finalCommission = getReleaseAndCommissionOng(currentStake, commission, candidateTotalStake);
@@ -584,18 +585,30 @@ public class ConsensusNodeService {
             nodeInspire.setInitPos(nodeInfoOnChain.getInitPos());
             nodeInspire.setTotalPos(nodeInfoOnChain.getTotalPos());
             nodeInspire.setNodeReleasedOngIncentive(finalNodeReleaseOng.longValue());
-            nodeInspire.setUserReleasedOngIncentive(finalUserReleaseOng.longValue());
             nodeInspire.setNodeGasFeeIncentive(finalNodeCommission.longValue());
-            nodeInspire.setUserGasFeeIncentive(finalUserCommission.longValue());
             nodeInspire.setNodeFoundationBonusIncentive(foundationInspire.longValue());
-            nodeInspire.setUserFoundationBonusIncentive(userFoundationInspire.longValue());
 
             nodeInspire.setNodeReleasedOngIncentiveRate(nodeReleaseUsd.divide(nodeStakeUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
             nodeInspire.setNodeGasFeeIncentiveRate(nodeCommissionUsd.divide(nodeStakeUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
             nodeInspire.setNodeFoundationBonusIncentiveRate(nodeFoundationUsd.divide(nodeStakeUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
-            nodeInspire.setUserReleasedOngIncentiveRate(userReleaseUsd.divide(totalPosUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
-            nodeInspire.setUserGasFeeIncentiveRate(userCommissionUsd.divide(totalPosUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
-            nodeInspire.setUserFoundationBonusIncentiveRate(userFoundationUsd.divide(userStakeUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+
+            Long maxAuthorize = nodeInfoOnChain.getMaxAuthorize();
+            if (maxAuthorize == 0 && nodeInfoOnChain.getTotalPos() == 0) {
+                nodeInspire.setUserReleasedOngIncentive(0L);
+                nodeInspire.setUserGasFeeIncentive(0L);
+                nodeInspire.setUserFoundationBonusIncentive(0L);
+                nodeInspire.setUserReleasedOngIncentiveRate("0.00%");
+                nodeInspire.setUserGasFeeIncentiveRate("0.00%");
+                nodeInspire.setUserFoundationBonusIncentiveRate("0.00%");
+            } else {
+                nodeInspire.setUserReleasedOngIncentive(finalUserReleaseOng.longValue());
+                nodeInspire.setUserGasFeeIncentive(finalUserCommission.longValue());
+                nodeInspire.setUserFoundationBonusIncentive(userFoundationInspire.longValue());
+                nodeInspire.setUserReleasedOngIncentiveRate(userReleaseUsd.divide(totalPosUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+                nodeInspire.setUserGasFeeIncentiveRate(userCommissionUsd.divide(totalPosUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+                nodeInspire.setUserFoundationBonusIncentiveRate(userFoundationUsd.divide(userStakeUsd, 12, BigDecimal.ROUND_HALF_UP).multiply(oneHundred).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString() + "%");
+            }
+
             nodeInspireList.add(nodeInspire);
         }
 
