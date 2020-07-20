@@ -2,6 +2,10 @@ package com.github.ontio.explorer.statistics.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.github.ontio.common.Helper;
+import com.github.ontio.core.asset.Sig;
+import com.github.ontio.core.payload.InvokeCode;
+import com.github.ontio.core.transaction.Transaction;
+import com.github.ontio.crypto.Digest;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.common.Response;
 import com.github.ontio.explorer.statistics.mapper.ConfigMapper;
@@ -63,6 +67,30 @@ public class ConfigService {
         return config.getValue();
     }
 
+    public Response insertOffChainInfo(InsertOffChainNodeInfoDto insertOffChainNodeInfoDto) throws Exception {
+        String address = insertOffChainNodeInfoDto.getAddress();
+        String name = insertOffChainNodeInfoDto.getName();
+        String publicKey = insertOffChainNodeInfoDto.getPublicKey();
+        if (StringUtils.isEmpty(publicKey)) {
+            return new Response(61001, "Public key is blank", "");
+        }
+        String peerInfo = ontSdkService.getPeerInfo(publicKey);
+        if (!StringUtils.isEmpty(peerInfo)) {
+            NodeInfoOffChain nodeInfoOffChain = new NodeInfoOffChain();
+            nodeInfoOffChain.setPublicKey(publicKey);
+            nodeInfoOffChain.setAddress(address);
+            nodeInfoOffChain.setName(name);
+            nodeInfoOffChain.setVerification(0);
+            nodeInfoOffChain.setOntId("");
+            nodeInfoOffChain.setNodeType(1);
+            nodeInfoOffChain.setOpenFlag(true);
+            nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
+            return new Response(0, "SUCCESS", "SUCCESS");
+        } else {
+            return new Response(61003, "Node not found on chain", "");
+        }
+
+    }
 
     public Response updateOffChainInfoByPublicKey(UpdateOffChainNodeInfoDto updateOffChainNodeInfoDto) throws Exception {
         String nodeInfo = updateOffChainNodeInfoDto.getNodeInfo();
@@ -94,28 +122,41 @@ public class ConfigService {
         return new Response(0, "SUCCESS", "SUCCESS");
     }
 
-    public Response insertOffChainInfo(InsertOffChainNodeInfoDto insertOffChainNodeInfoDto) throws Exception {
-        String address = insertOffChainNodeInfoDto.getAddress();
-        String name = insertOffChainNodeInfoDto.getName();
-        String publicKey = insertOffChainNodeInfoDto.getPublicKey();
-        if (StringUtils.isEmpty(publicKey)) {
-            return new Response(61001, "Public key is blank", "");
-        }
-        String peerInfo = ontSdkService.getPeerInfo(publicKey);
-        if (!StringUtils.isEmpty(peerInfo)) {
-            NodeInfoOffChain nodeInfoOffChain = new NodeInfoOffChain();
-            nodeInfoOffChain.setPublicKey(publicKey);
-            nodeInfoOffChain.setAddress(address);
-            nodeInfoOffChain.setName(name);
-            nodeInfoOffChain.setVerification(0);
-            nodeInfoOffChain.setOntId("");
-            nodeInfoOffChain.setNodeType(1);
-            nodeInfoOffChain.setOpenFlag(true);
-            nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
-            return new Response(0, "SUCCESS", "SUCCESS");
-        } else {
-            return new Response(61003, "Node not found on chain", "");
-        }
+    public Response updateOffChainInfoByLedger(UpdateOffChainNodeInfoDto updateOffChainNodeInfoDto) throws Exception {
+        String nodeInfo = updateOffChainNodeInfoDto.getNodeInfo();
+        String publicKey = updateOffChainNodeInfoDto.getPublicKey();
 
+        byte[] nodeInfoBytes = Helper.hexToBytes(nodeInfo);
+        InvokeCode transaction = (InvokeCode) Transaction.deserializeFrom(nodeInfoBytes);
+        String signature = Helper.toHexString(transaction.sigs[0].sigData[0]);
+        byte[] payload = transaction.code;
+        transaction.sigs = new Sig[0];
+        String hex = transaction.toHexString();
+        String tx = hex.substring(0, hex.length() - 2);
+        byte[] data = Digest.hash256(Helper.hexToBytes(tx));
+
+        boolean verify = ontSdkService.verifySignatureByPublicKey(publicKey, data, signature);
+        if (!verify) {
+            return new Response(62006, "Verify signature failed.", "");
+        }
+        String nodeInfoStr = new String(payload, "UTF-8");
+        log.info("ledger nodeInfoStr:{}",nodeInfoStr);
+        NodeInfoOffChain nodeInfoOffChain = JSONObject.parseObject(nodeInfoStr, NodeInfoOffChain.class);
+
+        String ontId = nodeInfoOffChain.getOntId();
+        if (ontId == null) {
+            nodeInfoOffChain.setOntId("");
+        }
+        nodeInfoOffChain.setNodeType(1);
+        String nodePublicKey = nodeInfoOffChain.getPublicKey();
+        String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
+        if (StringUtils.isEmpty(name)) {
+            // insert
+            nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
+        } else {
+            // update
+            nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
+        }
+        return new Response(0, "SUCCESS", "SUCCESS");
     }
 }
