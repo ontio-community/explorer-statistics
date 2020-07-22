@@ -84,7 +84,14 @@ public class ConfigService {
             nodeInfoOffChain.setOntId("");
             nodeInfoOffChain.setNodeType(1);
             nodeInfoOffChain.setOpenFlag(true);
-            nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
+            String existName = nodeInfoOffChainMapper.selectNameByPublicKey(publicKey);
+            if (StringUtils.isEmpty(existName)) {
+                // insert
+                nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
+            } else {
+                // update
+                nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
+            }
             return new Response(0, "SUCCESS", "SUCCESS");
         } else {
             return new Response(61003, "Node not found on chain", "");
