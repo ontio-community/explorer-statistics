@@ -9,6 +9,7 @@ import com.github.ontio.core.block.Block;
 import com.github.ontio.core.governance.Configuration;
 import com.github.ontio.core.governance.GovernanceView;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
+import com.github.ontio.io.BinaryReader;
 import com.github.ontio.network.exception.ConnectorException;
 import com.github.ontio.sdk.exception.SDKException;
 import lombok.Data;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -33,6 +35,8 @@ public class OntSdkService {
     private AtomicInteger currentNodeIndex;
 
     private ParamsConfig paramsConfig;
+
+    private final String contractAddress = "0000000000000000000000000000000000000007";
 
     @Autowired
     public OntSdkService(ParamsConfig paramsConfig) {
@@ -140,5 +144,29 @@ public class OntSdkService {
     public String getPeerInfo(String publicKey) throws Exception {
         String peerInfo = sdk.nativevm().governance().getPeerInfo(publicKey);
         return peerInfo;
+    }
+
+    public int getPreConsensusCount() {
+        try {
+            Configuration preConfiguration = getPreConfiguration();
+            return preConfiguration.K;
+        } catch (Exception e) {
+            log.warn("Getting authorize info failed: {}", e.getMessage());
+            switchSyncNode();
+            log.info("Getting authorize info again");
+            return getPreConsensusCount();
+        }
+    }
+
+    public Configuration getPreConfiguration() throws Exception {
+        String res = sdk.getConnect().getStorage(Helper.reverse(contractAddress), Helper.toHexString("preConfig".getBytes()));
+        if(res == null){
+            return null;
+        }
+        Configuration configuration = new Configuration();
+        ByteArrayInputStream in = new ByteArrayInputStream(Helper.hexToBytes(res));
+        BinaryReader reader = new BinaryReader(in);
+        configuration.deserialize(reader);
+        return configuration;
     }
 }
