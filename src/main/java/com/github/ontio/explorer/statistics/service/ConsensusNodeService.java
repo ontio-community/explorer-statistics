@@ -66,6 +66,8 @@ public class ConsensusNodeService {
 
     private InspireCalculationParamsMapper inspireCalculationParamsMapper;
 
+    private TxEventLogMapper txEventLogMapper;
+
     @Autowired
     public ConsensusNodeService(ParamsConfig paramsConfig,
                                 ObjectMapper objectMapper,
@@ -79,7 +81,8 @@ public class ConsensusNodeService {
                                 TxDetailMapper txDetailMapper,
                                 NodeInspireMapper nodeInspireMapper,
                                 StatisticsService statisticsService,
-                                InspireCalculationParamsMapper inspireCalculationParamsMapper) {
+                                InspireCalculationParamsMapper inspireCalculationParamsMapper,
+                                TxEventLogMapper txEventLogMapper) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -93,6 +96,7 @@ public class ConsensusNodeService {
         this.nodeInspireMapper = nodeInspireMapper;
         this.statisticsService = statisticsService;
         this.inspireCalculationParamsMapper = inspireCalculationParamsMapper;
+        this.txEventLogMapper = txEventLogMapper;
     }
 
     public void updateBlockCountToNextRound() {
@@ -302,6 +306,7 @@ public class ConsensusNodeService {
             NodeInfoOnChain node = new NodeInfoOnChain(item);
             node.setMaxAuthorize(Long.parseLong(attribute.get("maxAuthorize").toString()));
             node.setNodeProportion((100 - (int) attribute.get("t1PeerCost")) + "%");
+            node.setUserProportion((100 - (int) attribute.get("t1StakeCost")) + "%");
             nodes.add(node);
         }
         return nodes;
@@ -462,20 +467,21 @@ public class ConsensusNodeService {
         int now = (int) (System.currentTimeMillis() / 1000);
         int lastMonth = now - (30 * 24 * 60 * 60);
         // 获取激活时间
-        int activeTime = paramsConfig.getInspireActiveTime();
-        if (lastMonth < activeTime) {
-            if (now < activeTime) {
-                BigDecimal fee = txDetailMapper.findFeeAmountOneMonth(now, lastMonth);
-                lastMonthCommission = fee.multiply(new BigDecimal(5));
-            } else {
-                BigDecimal fee1 = txDetailMapper.findFeeAmountOneMonth(now, activeTime);
-                BigDecimal fee2 = txDetailMapper.findFeeAmountOneMonth(activeTime, lastMonth);
-                BigDecimal multiply = fee2.multiply(new BigDecimal(5));
-                lastMonthCommission = fee1.add(multiply);
-            }
-        } else {
-            lastMonthCommission = txDetailMapper.findFeeAmountOneMonth(now, lastMonth);
-        }
+//        int activeTime = paramsConfig.getInspireActiveTime();
+//        if (lastMonth < activeTime) {
+//            if (now < activeTime) {
+//                BigDecimal fee = txDetailMapper.findFeeAmountOneMonth(now, lastMonth);
+//                lastMonthCommission = fee.multiply(new BigDecimal(5));
+//            } else {
+//                BigDecimal fee1 = txDetailMapper.findFeeAmountOneMonth(now, activeTime);
+//                BigDecimal fee2 = txDetailMapper.findFeeAmountOneMonth(activeTime, lastMonth);
+//                BigDecimal multiply = fee2.multiply(new BigDecimal(5));
+//                lastMonthCommission = fee1.add(multiply);
+//            }
+//        } else {
+//            lastMonthCommission = txDetailMapper.findFeeAmountOneMonth(now, lastMonth);
+//        }
+        lastMonthCommission = txEventLogMapper.findFeeAmountOneMonth(now, lastMonth);
         commission = lastMonthCommission.multiply(new BigDecimal(365)).divide(new BigDecimal(30), 12, BigDecimal.ROUND_HALF_UP);
 
 
@@ -524,9 +530,12 @@ public class ConsensusNodeService {
             NodeInfoOnChain nodeInfoOnChain = nodeInfoOnChains.get(i);
             String publicKey = nodeInfoOnChain.getPublicKey();
             Integer status = nodeInfoOnChain.getStatus();
-            String proportion = nodeInfoOnChain.getNodeProportion().replace("%", "");
-            BigDecimal userProportion = new BigDecimal(proportion).divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);
-            BigDecimal nodeProportion = new BigDecimal(1).subtract(userProportion);
+            String initProportion = nodeInfoOnChain.getNodeProportion().replace("%", "");
+            String stakeProportion = nodeInfoOnChain.getUserProportion().replace("%", "");
+            BigDecimal initUserProportion = new BigDecimal(initProportion).divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);
+            BigDecimal initNodeProportion = new BigDecimal(1).subtract(initUserProportion);
+            BigDecimal stakeUserProportion = new BigDecimal(stakeProportion).divide(new BigDecimal(100), 2, BigDecimal.ROUND_HALF_UP);
+            BigDecimal stakeNodeProportion = new BigDecimal(1).subtract(stakeUserProportion);
             BigDecimal currentStake = new BigDecimal(nodeInfoOnChain.getCurrentStake());
             BigDecimal nodeStake = new BigDecimal(nodeInfoOnChain.getInitPos());
             BigDecimal totalPos = new BigDecimal(nodeInfoOnChain.getTotalPos());
@@ -545,20 +554,31 @@ public class ConsensusNodeService {
             if (nodeFoundationPublicKeys.contains(publicKey)) {
                 BigDecimal fp = new BigDecimal(nodeInfoOnChain.getInitPos());
                 BigDecimal siSubFp = currentStake.subtract(fp);
-                foundationInspire = first.multiply(siSubFp).multiply(nodeProportion);
+                foundationInspire = first.multiply(siSubFp).multiply(initNodeProportion);
                 // 用户收益
                 BigDecimal fpFu = fpFuList.get(i);
                 userStake = currentStake.subtract(fpFu);
-                BigDecimal siPb = currentStake.multiply(userProportion);
+                BigDecimal siPb = currentStake.multiply(initUserProportion);
                 BigDecimal add = siPb.divide(siSubFp, 12, BigDecimal.ROUND_HALF_UP).add(second);
                 userFoundationInspire = first.multiply(userStake).multiply(add);
             } else if (i < 49) {
                 foundationInspire = first.multiply(currentStake).multiply(new BigDecimal(1).add(second));
             }
-            BigDecimal finalUserReleaseOng = finalReleaseOng.multiply(userProportion);
-            BigDecimal finalNodeReleaseOng = finalReleaseOng.multiply(nodeProportion);
-            BigDecimal finalUserCommission = finalCommission.multiply(userProportion);
-            BigDecimal finalNodeCommission = finalCommission.multiply(nodeProportion);
+
+            BigDecimal initPercent = nodeStake.divide(currentStake, 12, BigDecimal.ROUND_HALF_UP);
+            BigDecimal stakePercent = totalPos.divide(currentStake, 12, BigDecimal.ROUND_HALF_UP);
+
+            BigDecimal initPartFinalReleaseOng = finalReleaseOng.multiply(initPercent);
+            BigDecimal stakePartFinalReleaseOng = finalReleaseOng.multiply(stakePercent);
+
+            BigDecimal finalUserReleaseOng = (initPartFinalReleaseOng.multiply(initUserProportion)).add((stakePartFinalReleaseOng.multiply(stakeUserProportion)));
+            BigDecimal finalNodeReleaseOng = (initPartFinalReleaseOng.multiply(initNodeProportion)).add((stakePartFinalReleaseOng.multiply(stakeNodeProportion)));
+
+            BigDecimal initPartFinalCommission = finalCommission.multiply(initPercent);
+            BigDecimal stakePartFinalCommission = finalCommission.multiply(stakePercent);
+
+            BigDecimal finalUserCommission = (initPartFinalCommission.multiply(initUserProportion)).add((stakePartFinalCommission.multiply(stakeUserProportion)));
+            BigDecimal finalNodeCommission = (initPartFinalCommission.multiply(initNodeProportion)).add((stakePartFinalCommission.multiply(stakeNodeProportion)));
 
             if (totalPos.compareTo(BigDecimal.ZERO) == 0) {
                 totalPos = new BigDecimal(paramsConfig.insteadZeroPos);

@@ -17,6 +17,7 @@
         <result column="total_pos" jdbcType="BIGINT" property="totalPos"/>
         <result column="max_authorize" jdbcType="BIGINT" property="maxAuthorize"/>
         <result column="node_proportion" jdbcType="VARCHAR" property="nodeProportion"/>
+        <result column="user_proportion" jdbcType="VARCHAR" property="userProportion"/>
         <result column="current_stake_percentage" jdbcType="VARCHAR" property="currentStakePercentage"/>
     </resultMap>
     <!--
@@ -28,14 +29,14 @@
     </delete>
     <insert id="batchInsert" parameterType="java.util.List">
         INSERT INTO tbl_node_info_on_chain ( node_rank, name, current_stake,progress, detail_url, public_key, address,
-        status, init_pos, total_pos, max_authorize, node_proportion,current_stake_percentage)
+        status, init_pos, total_pos, max_authorize, node_proportion,user_proportion,current_stake_percentage)
         values
         <foreach collection="list" index="index" item="item" separator=",">
             (#{item.nodeRank,jdbcType=INTEGER}, #{item.name,jdbcType=VARCHAR},#{item.currentStake,jdbcType=BIGINT},
             #{item.progress,jdbcType=VARCHAR},#{item.detailUrl,jdbcType=VARCHAR},#{item.publicKey,jdbcType=VARCHAR},
             #{item.address,jdbcType=VARCHAR},#{item.status,jdbcType=INTEGER},#{item.initPos,jdbcType=BIGINT},
             #{item.totalPos,jdbcType=BIGINT},#{item.maxAuthorize,jdbcType=BIGINT},#{item.nodeProportion,jdbcType=VARCHAR},
-            #{item.currentStakePercentage,jdbcType=VARCHAR})
+            #{item.userProportion,jdbcType=VARCHAR},#{item.currentStakePercentage,jdbcType=VARCHAR})
         </foreach>
     </insert>
 </mapper>
