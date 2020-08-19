@@ -48,6 +48,9 @@ public class NodeInfoOnChain {
     @Column(name = "node_proportion")
     private String nodeProportion;
 
+    @Column(name = "user_proportion")
+    private String userProportion;
+
     @Column(name = "current_stake_percentage")
     private String currentStakePercentage;
 
@@ -60,6 +63,7 @@ public class NodeInfoOnChain {
         this.initPos = item.initPos;
         this.totalPos = item.totalPos;
         this.nodeProportion = "";
+        this.userProportion = "";
         this.currentStakePercentage = "";
 
     }

@@ -20,7 +20,11 @@ import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 import tk.mybatis.mapper.common.Mapper;
 
+import java.math.BigDecimal;
+
 @Repository
 public interface TxEventLogMapper extends Mapper<TxEventLog> {
     Integer queryTxCount(@Param("startTime") Long startTime, @Param("endTime") Long endTime);
+
+    BigDecimal findFeeAmountOneMonth(int now, int before);
 }

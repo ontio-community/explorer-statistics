@@ -72,7 +72,7 @@ public class OntSdkService {
                 return getStakingChangeCount();
             }
             return configuration.MaxBlockChangeView;
-        } catch (ConnectorException | IOException | SDKException e) {
+        } catch (ConnectorException | IOException e) {
             log.warn("Getting native vm configuration failed: {}", e.getMessage());
             switchSyncNode();
             log.info("Getting native vm configuration again");
