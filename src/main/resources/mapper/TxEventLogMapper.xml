@@ -22,4 +22,10 @@
         WHERE tx_time &gt;= #{startTime}
           AND <![CDATA[ tx_time <= #{endTime}]]>
     </select>
+
+    <select id="findFeeAmountOneMonth" resultType="java.math.BigDecimal">
+        SELECT COUNT( 1 ) * 0.05 * 1.5 FROM tbl_tx_eventlog WHERE
+        tx_time &lt; #{now} AND tx_time > #{before};
+    </select>
+
 </mapper>
