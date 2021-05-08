@@ -32,4 +32,5 @@ public class Constants {
 
     public static final String ADDR_DAILY_SUMMARY_NATIVETYPE = "0000000000000000000000000000000000000000";
 
+    public static final Integer UTC_20210701 = 1625097600;
 }

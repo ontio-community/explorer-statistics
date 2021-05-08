@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.ontio.core.governance.GovernanceView;
 import com.github.ontio.core.governance.PeerPoolItem;
+import com.github.ontio.explorer.statistics.common.Constants;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.mapper.*;
 import com.github.ontio.explorer.statistics.model.*;
@@ -561,7 +562,7 @@ public class ConsensusNodeService {
                 BigDecimal siPb = currentStake.multiply(initUserProportion);
                 BigDecimal add = siPb.divide(siSubFp, 12, BigDecimal.ROUND_HALF_UP).add(second);
                 userFoundationInspire = first.multiply(userStake).multiply(add);
-            } else if (i < 49) {
+            } else if (i < 49 && now < Constants.UTC_20210701) {
                 foundationInspire = first.multiply(currentStake).multiply(new BigDecimal(1).add(second));
             }
 
