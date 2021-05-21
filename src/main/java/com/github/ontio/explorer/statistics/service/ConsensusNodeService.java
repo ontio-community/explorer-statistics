@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.ontio.core.governance.GovernanceView;
 import com.github.ontio.core.governance.PeerPoolItem;
+import com.github.ontio.explorer.statistics.common.Constants;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.mapper.*;
 import com.github.ontio.explorer.statistics.model.*;
@@ -331,8 +332,12 @@ public class ConsensusNodeService {
             node.setNodeRank(i + 1);
             BigDecimal currentPos = new BigDecimal(node.getInitPos()).add(new BigDecimal(node.getTotalPos()));
             BigDecimal targetPos = new BigDecimal(node.getInitPos()).add(new BigDecimal(node.getMaxAuthorize()));
+            BigDecimal progress = currentPos.multiply(Constants.ONE_HUNDRED).divide(targetPos, 2, RoundingMode.DOWN);
+            if (Constants.ONE_HUNDRED.compareTo(progress) < 0) {
+                progress = Constants.ONE_HUNDRED;
+            }
             node.setCurrentStake(currentPos.longValue());
-            node.setProgress(currentPos.multiply(new BigDecimal(100)).divide(targetPos, 2, RoundingMode.DOWN) + "%");
+            node.setProgress(progress.toPlainString() + "%");
             node.setDetailUrl(paramsConfig.getConsensusNodeDetailUrl() + node.getPublicKey());
             BigDecimal percent = new BigDecimal(node.getCurrentStake()).multiply(new BigDecimal(100)).divide(new BigDecimal(1000000000), 4, RoundingMode.HALF_UP);
             node.setCurrentStakePercentage(percent.toPlainString().concat("%"));
@@ -561,7 +566,7 @@ public class ConsensusNodeService {
                 BigDecimal siPb = currentStake.multiply(initUserProportion);
                 BigDecimal add = siPb.divide(siSubFp, 12, BigDecimal.ROUND_HALF_UP).add(second);
                 userFoundationInspire = first.multiply(userStake).multiply(add);
-            } else if (i < 49) {
+            } else if (i < 49 && now < Constants.UTC_20210701) {
                 foundationInspire = first.multiply(currentStake).multiply(new BigDecimal(1).add(second));
             }
 
