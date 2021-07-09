@@ -566,7 +566,7 @@ public class ConsensusNodeService {
                 BigDecimal siPb = currentStake.multiply(initUserProportion);
                 BigDecimal add = siPb.divide(siSubFp, 12, BigDecimal.ROUND_HALF_UP).add(second);
                 userFoundationInspire = first.multiply(userStake).multiply(add);
-            } else if (i < 49 && now < Constants.UTC_20210701) {
+            } else if (i < 49 && now < Constants.UTC_20210801) {
                 foundationInspire = first.multiply(currentStake).multiply(new BigDecimal(1).add(second));
             }
 
