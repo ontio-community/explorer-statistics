@@ -26,125 +26,131 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AggregateContext {
 
-	/**
-	 * 虚拟合约，表示对所有合约加总的统计
-	 */
-	public static final String VIRTUAL_CONTRACT_ALL = "$$ALL$$";
+    /**
+     * 虚拟合约，表示对所有合约加总的统计
+     */
+    public static final String VIRTUAL_CONTRACT_ALL = "$$ALL$$";
 
-	/**
-	 * 虚拟合约，表示对 ONT 和 ONG 加总的统计
-	 */
-	public static final String VIRTUAL_CONTRACT_NATIVE = "$$NATIVE$$";
+    /**
+     * 虚拟合约，表示对 ONT 和 ONG 加总的统计
+     */
+    public static final String VIRTUAL_CONTRACT_NATIVE = "$$NATIVE$$";
 
-	/**
-	 * 虚拟合约，表示对所有 OEP4 合约加总的统计
-	 */
-	public static final String VIRTUAL_CONTRACT_OEP4 = "$$OEP4$$";
+    /**
+     * 虚拟合约，表示对所有 OEP4 合约加总的统计
+     */
+    public static final String VIRTUAL_CONTRACT_OEP4 = "$$OEP4$$";
 
-	/**
-	 * 治理合约地址
-	 */
-	public static final String GOVERNOR_ADDRESS = "AFmseVrdL9f9oyCzZefL9tG6UbviEH9ugK";
+    public static final String VIRTUAL_CONTRACT_ORC20 = "$$ORC20$$";
 
-	private static final Collection<String> VIRTUAL_CONTRACTS;
+    /**
+     * 治理合约地址
+     */
+    public static final String GOVERNOR_ADDRESS = "AFmseVrdL9f9oyCzZefL9tG6UbviEH9ugK";
 
-	static {
-		Set<String> virtualContracts = new HashSet<>(Arrays.asList(VIRTUAL_CONTRACT_ALL, VIRTUAL_CONTRACT_NATIVE,
-				VIRTUAL_CONTRACT_OEP4));
-		VIRTUAL_CONTRACTS = Collections.unmodifiableSet(virtualContracts);
-	}
+    private static final Collection<String> VIRTUAL_CONTRACTS;
 
-	@Getter
-	@Setter
-	private int dateId;
+    static {
+        Set<String> virtualContracts = new HashSet<>(Arrays.asList(VIRTUAL_CONTRACT_ALL, VIRTUAL_CONTRACT_NATIVE,
+                VIRTUAL_CONTRACT_OEP4, VIRTUAL_CONTRACT_ORC20));
+        VIRTUAL_CONTRACTS = Collections.unmodifiableSet(virtualContracts);
+    }
 
-	@Getter
-	@Setter
-	private int blockHeight;
+    @Getter
+    @Setter
+    private int dateId;
 
-	@Getter
-	private ReSync reSync;
+    @Getter
+    @Setter
+    private int blockHeight;
 
-	private final ContractMapper contractMapper;
+    @Getter
+    private ReSync reSync;
 
-	@Getter
-	private final ParamsConfig config;
+    private final ContractMapper contractMapper;
 
-	private LoadingCache<String, ContractType> contractTypes;
+    @Getter
+    private final ParamsConfig config;
 
-	public Collection<String> virtualContracts() {
-		return VIRTUAL_CONTRACTS;
-	}
+    private LoadingCache<String, ContractType> contractTypes;
 
-	public boolean isVirtualAll(String contractHash) {
-		return VIRTUAL_CONTRACT_ALL.equals(contractHash);
-	}
+    public Collection<String> virtualContracts() {
+        return VIRTUAL_CONTRACTS;
+    }
 
-	public boolean isVirtualNative(String contractHash) {
-		return VIRTUAL_CONTRACT_NATIVE.equals(contractHash);
-	}
+    public boolean isVirtualAll(String contractHash) {
+        return VIRTUAL_CONTRACT_ALL.equals(contractHash);
+    }
 
-	public boolean isVirtualOep4(String contractHash) {
-		return VIRTUAL_CONTRACT_OEP4.equals(contractHash);
-	}
+    public boolean isVirtualNative(String contractHash) {
+        return VIRTUAL_CONTRACT_NATIVE.equals(contractHash);
+    }
 
-	public boolean isNativeContract(String contractHash) {
-		return isOnt(contractHash) || isOng(contractHash);
-	}
+    public boolean isVirtualOep4(String contractHash) {
+        return VIRTUAL_CONTRACT_OEP4.equals(contractHash);
+    }
 
-	public boolean isOnt(String contractHash) {
-		return config.getOntContractHash().equals(contractHash);
-	}
+    public boolean isNativeContract(String contractHash) {
+        return isOnt(contractHash) || isOng(contractHash);
+    }
 
-	public boolean isOng(String contractHash) {
-		return config.getOngContractHash().equals(contractHash);
-	}
+    public boolean isOnt(String contractHash) {
+        return config.getOntContractHash().equals(contractHash);
+    }
 
-	public boolean isOep4Contract(String contractHash) {
-		return contractTypes.get(contractHash).isOep4();
-	}
+    public boolean isOng(String contractHash) {
+        return config.getOngContractHash().equals(contractHash);
+    }
 
-	public boolean isOep5Contract(String contractHash) {
-		return contractTypes.get(contractHash).isOep5();
-	}
+    public boolean isOep4Contract(String contractHash) {
+        return contractTypes.get(contractHash).isOep4();
+    }
 
-	public boolean isOep8Contract(String contractHash) {
-		return contractTypes.get(contractHash).isOep8();
-	}
+    public boolean isOep5Contract(String contractHash) {
+        return contractTypes.get(contractHash).isOep5();
+    }
 
-	public boolean isGovernor(String address) {
-		return GOVERNOR_ADDRESS.equals(address);
-	}
+    public boolean isOep8Contract(String contractHash) {
+        return contractTypes.get(contractHash).isOep8();
+    }
 
-	public void beginReSync(ReSync.Begin begin) {
-		if (this.reSync != null) {
-			throw new IllegalStateException("previous re-sync has not been finished!");
-		}
-		this.dateId = 0;
-		this.blockHeight = 0;
-		this.reSync = begin.getReSync();
-	}
+    public boolean isOrc20Contract(String contractHash) {
+        return contractTypes.get(contractHash).isOrc20();
+    }
 
-	public void endReSync(ReSync.End end) {
-		if (this.reSync != end.getReSync()) {
-			throw new IllegalStateException("stale re-sync status");
-		}
-		this.reSync = null;
-	}
+    public boolean isGovernor(String address) {
+        return GOVERNOR_ADDRESS.equals(address);
+    }
 
-	public boolean isReSyncing() {
-		return reSync != null;
-	}
+    public void beginReSync(ReSync.Begin begin) {
+        if (this.reSync != null) {
+            throw new IllegalStateException("previous re-sync has not been finished!");
+        }
+        this.dateId = 0;
+        this.blockHeight = 0;
+        this.reSync = begin.getReSync();
+    }
 
-	@PostConstruct
-	public void init() {
-		contractTypes = Caffeine.newBuilder()
-				.maximumSize(4096)
-				.expireAfterAccess(Duration.ofHours(1))
-				.build(contractHash -> {
-					ContractType contractType = contractMapper.findContractType(contractHash);
-					return contractType == null ? ContractType.NULL : contractType;
-				});
-	}
+    public void endReSync(ReSync.End end) {
+        if (this.reSync != end.getReSync()) {
+            throw new IllegalStateException("stale re-sync status");
+        }
+        this.reSync = null;
+    }
+
+    public boolean isReSyncing() {
+        return reSync != null;
+    }
+
+    @PostConstruct
+    public void init() {
+        contractTypes = Caffeine.newBuilder()
+                .maximumSize(4096)
+                .expireAfterAccess(Duration.ofHours(1))
+                .build(contractHash -> {
+                    ContractType contractType = contractMapper.findContractType(contractHash);
+                    return contractType == null ? ContractType.NULL : contractType;
+                });
+    }
 
 }
