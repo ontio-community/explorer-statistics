@@ -118,6 +118,9 @@ public class AggregateContext {
         return contractTypes.get(contractHash).isOrc20();
     }
 
+    public boolean isOrc721Contract(String contractHash) {
+        return contractTypes.get(contractHash).isOrc721();
+    }
     public boolean isGovernor(String address) {
         return GOVERNOR_ADDRESS.equals(address);
     }
