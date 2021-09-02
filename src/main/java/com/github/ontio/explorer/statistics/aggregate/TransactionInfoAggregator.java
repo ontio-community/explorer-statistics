@@ -33,9 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.github.ontio.explorer.statistics.aggregate.AggregateContext.VIRTUAL_CONTRACT_ALL;
-import static com.github.ontio.explorer.statistics.aggregate.AggregateContext.VIRTUAL_CONTRACT_NATIVE;
-import static com.github.ontio.explorer.statistics.aggregate.AggregateContext.VIRTUAL_CONTRACT_OEP4;
+import static com.github.ontio.explorer.statistics.aggregate.AggregateContext.*;
 
 /**
  * @author LiuQi
@@ -193,6 +191,10 @@ public class TransactionInfoAggregator extends DisruptorEventPublisherAdapter {
 		if (context.isOep4Contract(contractHash)) {
 			tokenContractHashes.add(VIRTUAL_CONTRACT_OEP4);
 		}
+		if (context.isOrc20Contract(contractHash)) {
+			tokenContractHashes.add(VIRTUAL_CONTRACT_ORC20);
+		}
+
 		return tokenContractHashes;
 	}
 

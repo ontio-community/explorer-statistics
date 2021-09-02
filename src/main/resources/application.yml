@@ -49,7 +49,7 @@ config:
   consensus-node-detail-url: https://explorer.ont.io/nodes/detail/
   node-map-url: http://52.77.140.175:8888/api/nodes
   is-test-net: false
-  max-staking-change-count: 120000
+  max-staking-change-count: 60000
   node-foundation-address:
     - ANZH6McmwUKABVKRbduGXfbbqhaz6Fxokd
     - AUtZgQxZQwnmzPa68zAphyxyByGFh9kDK4
