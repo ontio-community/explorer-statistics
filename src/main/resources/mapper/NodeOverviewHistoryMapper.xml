@@ -52,7 +52,18 @@
         cycle
         FROM tbl_node_overview_history
         WHERE cycle <![CDATA[ > ]]> #{cycle}
-        ORDER BY cycle ASC;
+        ORDER BY cycle ASC
+    </select>
+
+    <select id="queryNodeDetailByCycle" resultMap="BaseResultMap">
+        SELECT id,
+               rnd_start_blk,
+               rnd_end_blk,
+               rnd_start_time,
+               rnd_end_time,
+               cycle
+        FROM tbl_node_overview_history
+        where cycle = #{cycle}
     </select>
 
 

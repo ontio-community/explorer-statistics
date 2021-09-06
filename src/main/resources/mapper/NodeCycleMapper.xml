@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.github.ontio.explorer.statistics.mapper.NodeCycleMapper">
+
+    <select id="selectMaxCycle" resultType="Integer">
+        SELECT MAX(cycle)
+        FROM tbl_node_cycle_data
+    </select>
+
+
+    <insert id="batchSave">
+        INSERT INTO tbl_node_cycle_data
+        (
+        `public_key`,
+        `address`,
+        `name`,
+        `status`,
+        `node_type`,
+        `node_proportion_t`,
+        `user_proportion_t`,
+        `node_proportion_t2`,
+        `user_proportion_t2`,
+        `bonus_ong`,
+        `node_stake_ont`,
+        `user_stake_ont`,
+        `cycle`
+        ) VALUES
+        <foreach collection="nodeCycleList" item="item" separator=",">
+            (
+            #{item.publicKey},
+            #{item.address},
+            #{item.name},
+            #{item.status},
+            #{item.nodeType},
+            #{item.nodeProportionT},
+            #{item.userProportionT},
+            #{item.nodeProportionT2},
+            #{item.userProportionT2},
+            #{item.bonusOng},
+            #{item.nodeStakeONT},
+            #{item.userStakeONT},
+            #{item.cycle}
+            )
+        </foreach>
+
+    </insert>
+
+
+    <select id="selectCycleData" resultType="com.github.ontio.explorer.statistics.model.NodeCycle">
+        select *
+        FROM tbl_node_cycle_data
+        WHERE cycle = #{cycle}
+    </select>
+
+
+    <update id="updateLastCycleProportion" >
+        UPDATE tbl_node_cycle_data
+        SET node_proportion_t2 = #{nodeProportionT2},
+            user_proportion_t2 = #{userProportionT2},
+            bonus_ong = #{bonusOng}
+        WHERE public_key = #{publicKey}
+          AND cycle = #{cycle}
+    </update>
+
+
+    <update id="updateBonusOng" >
+        UPDATE tbl_node_cycle_data
+        SET bonus_ong = #{bonusOng}
+        WHERE public_key = #{pubKey} AND cycle = #{cycleNum}
+    </update>
+
+
+</mapper>
