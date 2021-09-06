@@ -250,7 +250,7 @@ public class StatisticsService {
         List<Map> oepTokenSum;
         Map<String, Object> paramMap = new HashMap<>();
         paramMap.put("contractHash", contractHash);
-        if (type.equalsIgnoreCase("oep5")) {
+        if (type.equalsIgnoreCase("oep5") || type.equalsIgnoreCase("orc721")) {
             paramMap.put("oep5", "oep5");
             oepTokenSum = txDetailDailyMapper.selectContractTokenAllSum(paramMap);
             if (!isEmptyOrNull(oepTokenSum) && oepTokenSum.size() != 0) {
