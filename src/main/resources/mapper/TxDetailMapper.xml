@@ -72,4 +72,15 @@
         WHERE
         tx_time &lt; #{now} AND tx_time > #{before};
     </select>
+
+
+    <select id="findFeeAmountOneCycle" resultType="java.math.BigDecimal">
+        SELECT
+            SUM( fee )
+        FROM
+            tbl_tx_detail
+        WHERE
+            block_height <![CDATA[>=]]> #{startBlock} AND block_height <![CDATA[<=]]> #{endBlock};
+    </select>
+
 </mapper>
