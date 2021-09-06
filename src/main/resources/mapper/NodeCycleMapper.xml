@@ -50,12 +50,14 @@
         select *
         FROM tbl_node_cycle_data
         WHERE cycle = #{cycle}
+        AND status = IN (0,1)
     </select>
 
 
-    <update id="updateLastCycleProportion" >
+    <update id="updateLastCycleProportion">
         UPDATE tbl_node_cycle_data
-        SET node_proportion_t2 = #{nodeProportionT2},
+        SET name = #{name},
+            node_proportion_t2 = #{nodeProportionT2},
             user_proportion_t2 = #{userProportionT2},
             bonus_ong = #{bonusOng}
         WHERE public_key = #{publicKey}
@@ -63,7 +65,7 @@
     </update>
 
 
-    <update id="updateBonusOng" >
+    <update id="updateBonusOng">
         UPDATE tbl_node_cycle_data
         SET bonus_ong = #{bonusOng}
         WHERE public_key = #{pubKey} AND cycle = #{cycleNum}

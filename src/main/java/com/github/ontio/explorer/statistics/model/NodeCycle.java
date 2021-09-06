@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "tbl_node_cycle")
+@Table(name = "tbl_node_cycle_data")
 public class NodeCycle {
 
     @Id

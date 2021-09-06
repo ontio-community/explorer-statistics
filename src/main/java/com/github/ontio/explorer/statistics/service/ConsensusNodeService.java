@@ -326,11 +326,9 @@ public class ConsensusNodeService {
         List<NodeInfoOnChain> nodes = new ArrayList<>();
         for (Object obj : peerPool.values()) {
             PeerPoolItem item = (PeerPoolItem) obj;
-            HashMap<String, Object> attribute = getAttributes(item.peerPubkey);
             NodeInfoOnChain node = new NodeInfoOnChain(item);
-            node.setMaxAuthorize(Long.parseLong(attribute.get("maxAuthorize").toString()));
-            node.setNodeProportion((100 - (int) attribute.get("t1PeerCost")) + "%");
-            node.setUserProportion((100 - (int) attribute.get("t1StakeCost")) + "%");
+            String name = nodeInfoOffChainMapper.selectNameByPublicKey(item.peerPubkey);
+            node.setName(name);
             nodes.add(node);
         }
         return nodes;
@@ -684,8 +682,6 @@ public class ConsensusNodeService {
     }
 
 
-
-
     private BigDecimal getConsensusInspire4NodeCycle(BigDecimal consensusAverageStake, Map<String, BigDecimal> consensusInspireMap, List<NodeCycle> consensusNodes) throws ConnectorException, IOException {
         BigDecimal totalConsensusInspire = BigDecimal.ZERO;
         for (NodeCycle nodeCycle : consensusNodes) {
@@ -729,16 +725,16 @@ public class ConsensusNodeService {
 
 
     public void updateNodeCycleData() throws Exception {
-        int currentRoundView;
+        int lastRoundView;
         try {
-            currentRoundView = nodeCycleMapper.selectMaxCycle();
+            lastRoundView = nodeCycleMapper.selectMaxCycle();
         } catch (Exception e) {
             initNodeCycle();
             return;
         }
-        int roundStartView = getRoundStartView();
-        if (roundStartView > currentRoundView) {
-            updateNodeCycle(currentRoundView);
+        int currentRoundView = getRoundStartView();
+        if (currentRoundView > lastRoundView) {
+            updateNodeCycle(currentRoundView, lastRoundView);
         }
     }
 
@@ -746,8 +742,8 @@ public class ConsensusNodeService {
     private void initNodeCycle() {
         Map peerPool = getPeerPool();
         List<NodeInfoOnChain> nodes = filterNodes(peerPool);
-        List<NodeInfoOnChain> nodeInfos = calcNodeInfo(nodes);
-        nodes = matchNodeName(nodeInfos);
+//        List<NodeInfoOnChain> nodeInfos = calcNodeInfo(nodes);
+//        nodes = matchNodeName(nodeInfos);
 
         List<NodeCycle> nodeCycleList = new ArrayList<>();
         nodes.forEach(item -> {
@@ -784,13 +780,12 @@ public class ConsensusNodeService {
     }
 
     // 在这个周期更新上面一个周期的ong收益情况 currentRoundView为上个周期的计数
-    private void updateNodeCycle(int lastRoundView) throws Exception {
+    private void updateNodeCycle(int currentRoundView, int lastRoundView) throws Exception {
         Map peerPool = getPeerPool();
         List<NodeInfoOnChain> nodes = filterNodes(peerPool);
-        List<NodeInfoOnChain> nodeInfos = calcNodeInfo(nodes);
-        nodes = matchNodeName(nodeInfos);
+        // 只查出上周期在线的节点
         List<NodeCycle> nodeCycleListTemp = nodeCycleMapper.selectCycleData(lastRoundView);
-        List<String> lastPublicKeys = new ArrayList<String>();
+        List<String> lastPublicKeys = new ArrayList<>();
         nodeCycleListTemp.forEach(item -> lastPublicKeys.add(item.getPublicKey()));
         Map<String, BigDecimal> pub2bonusMap = nodeCycleYield(nodeCycleListTemp);
 
@@ -804,6 +799,7 @@ public class ConsensusNodeService {
             // 与历史数据进行比较判断是否是新注册的状态
             Integer nodeType = item.getStatus();
             nodeCycle.setNodeType(nodeType);
+            // 节点变更状态 0新注册, 1 正常运行, 2退出状态 3 其他, 包括黑名单状态的节点类型
             if (lastPublicKeys.contains(publicKey)) {
                 // 上次有这个数据, 根据上次的数据类型进行判断, list集合为有序的
                 if (nodeType == 1 || nodeType == 2) {
@@ -813,10 +809,8 @@ public class ConsensusNodeService {
                 } else {
                     nodeCycle.setStatus(3);
                 }
-            } else if (nodeCycle.getNodeType() == 0) {
-                nodeCycle.setStatus(0);
             } else {
-                nodeCycle.setStatus(3);
+                nodeCycle.setStatus(0);
             }
             HashMap<String, Object> attribute = getAttributes(publicKey);
             // 本周期的数据存放
@@ -832,21 +826,22 @@ public class ConsensusNodeService {
             // 本周期的默认值,需等待下周期来进行修改本周周期的ong激励
             nodeCycle.setNodeStakeONT(item.getInitPos().intValue());
             nodeCycle.setUserStakeONT(item.getTotalPos().intValue());
-            int thisCycle = getRoundStartView();
-            nodeCycle.setCycle(thisCycle);
+            nodeCycle.setCycle(currentRoundView);
             nodeCycle.setBonusOng(BigDecimal.valueOf(0));
 
-            if (item.getStatus() == 1 || item.getStatus() == 2) {
-                BigDecimal bonusOng = pub2bonusMap.get(publicKey);
-                nodeCycleMapper.updateLastCycleProportion(publicKey, thisCycle - 1, t1NodeCost, t1UserCost, bonusOng);
+            BigDecimal bonusOng = pub2bonusMap.get(publicKey);
+            if (bonusOng == null) {
+                bonusOng = BigDecimal.ZERO;
             }
+            nodeCycleMapper.updateLastCycleProportion(publicKey, lastRoundView, item.getName(), t1NodeCost, t1UserCost, bonusOng);
+
             nodeCycleList.add(nodeCycle);
         });
         nodeCycleMapper.batchSave(nodeCycleList);
     }
 
 
-    private Map nodeCycleYield(List<NodeCycle> nodeCycleList) throws ConnectorException, IOException {
+    private Map<String, BigDecimal> nodeCycleYield(List<NodeCycle> nodeCycleList) throws ConnectorException, IOException {
         HashMap<String, BigDecimal> mapOfInspire = new HashMap<>();
         Integer cycleNum = nodeCycleList.get(0).getCycle();
         NodeOverviewHistory nodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(cycleNum);
