@@ -50,7 +50,7 @@
         select *
         FROM tbl_node_cycle_data
         WHERE cycle = #{cycle}
-        AND status = IN (0,1)
+        AND status IN (0,1)
     </select>
 
 
