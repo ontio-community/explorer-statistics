@@ -9,6 +9,7 @@ import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.math.BigDecimal;
 
 @Data
 @Builder
@@ -50,7 +51,7 @@ public class NodeCycle {
     private String userProportionT2;
 
     @Column(name = "bonus_ong")
-    private Double bonusOng;
+    private BigDecimal bonusOng;
 
     @Column(name = "node_stake_ont")
     private Integer nodeStakeONT;

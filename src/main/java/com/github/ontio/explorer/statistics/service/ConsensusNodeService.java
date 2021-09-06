@@ -684,22 +684,12 @@ public class ConsensusNodeService {
     }
 
 
-    private Long getCurrentStakeByPubKey(String pubkey) throws ConnectorException, IOException {
-        OntSdk ontSdk = ontSdkService.getSdk();
-        long totalStake = 0L;
-        PeerPoolItem obj = (PeerPoolItem) ontSdk.nativevm().governance().getPeerPoolMap().get(pubkey);
-        // obj 为null,即上个周期有的节点已退出,这个周期查不到
-        if (obj != null) {
-            totalStake += (obj.initPos + obj.totalPos);
-        }
-        return totalStake;
-    }
 
 
     private BigDecimal getConsensusInspire4NodeCycle(BigDecimal consensusAverageStake, Map<String, BigDecimal> consensusInspireMap, List<NodeCycle> consensusNodes) throws ConnectorException, IOException {
         BigDecimal totalConsensusInspire = BigDecimal.ZERO;
         for (NodeCycle nodeCycle : consensusNodes) {
-            Long currentStake = getCurrentStakeByPubKey(nodeCycle.getPublicKey());
+            int currentStake = nodeCycle.getNodeStakeONT() + nodeCycle.getUserStakeONT();
             BigDecimal xi = new BigDecimal(currentStake * 0.5).divide(consensusAverageStake, 12, BigDecimal.ROUND_HALF_UP);
             double pow = Math.pow(Math.E, (BigDecimal.ZERO.subtract(xi)).doubleValue());
             BigDecimal consensusInspire = xi.multiply(new BigDecimal(pow)).setScale(12, BigDecimal.ROUND_HALF_UP);
@@ -721,16 +711,9 @@ public class ConsensusNodeService {
 
 
     private BigDecimal getTotalStake4NodeCycle(List<NodeCycle> nodes) {
-        Long totalStake = 0L;
+        long totalStake = 0L;
         for (NodeCycle nodeCycle : nodes) {
-            OntSdk ontSdk = ontSdkService.getSdk();
-            try {
-                PeerPoolItem obj = (PeerPoolItem) ontSdk.nativevm().governance().getPeerPoolMap().get(nodeCycle.getPublicKey());
-                totalStake += (obj.initPos + obj.totalPos);
-            } catch (ConnectorException | IOException e) {
-                log.error("Getting nodes total stakes  failed:");
-                e.printStackTrace();
-            }
+            totalStake += (nodeCycle.getUserStakeONT() + nodeCycle.getNodeStakeONT());
         }
         return new BigDecimal(totalStake);
     }
@@ -775,7 +758,7 @@ public class ConsensusNodeService {
             nodeCycle.setName(item.getName());
             Integer nodeType = item.getStatus();
             nodeCycle.setNodeType(nodeType);
-            // 节点变更状态 0 新注册, 1 正常运行, 2退出状态 3 其他, 包括黑名单状态的节点类型
+            // 节点变更状态 0新注册, 1 正常运行, 2退出状态 3 其他, 包括黑名单状态的节点类型
             if (nodeType == 0) {
                 nodeCycle.setStatus(0);
             } else if (nodeType == 1 || nodeType == 2) {
@@ -791,7 +774,7 @@ public class ConsensusNodeService {
             nodeCycle.setUserProportionT((100 - (int) attribute.get("tStakeCost") + "%"));
             nodeCycle.setUserProportionT2((100 - (int) attribute.get("t2StakeCost") + "%"));
             // 本周周期的节点激励需要下周期更新其数据
-            nodeCycle.setBonusOng(Double.valueOf("0.0"));
+            nodeCycle.setBonusOng(BigDecimal.valueOf(0));
             nodeCycle.setNodeStakeONT(item.getInitPos().intValue());
             nodeCycle.setUserStakeONT(item.getTotalPos().intValue());
             nodeCycle.setCycle(getRoundStartView());
@@ -801,21 +784,15 @@ public class ConsensusNodeService {
     }
 
     // 在这个周期更新上面一个周期的ong收益情况 currentRoundView为上个周期的计数
-    private void updateNodeCycle(int currentRoundView) throws Exception {
+    private void updateNodeCycle(int lastRoundView) throws Exception {
         Map peerPool = getPeerPool();
         List<NodeInfoOnChain> nodes = filterNodes(peerPool);
         List<NodeInfoOnChain> nodeInfos = calcNodeInfo(nodes);
         nodes = matchNodeName(nodeInfos);
-        List<String> lastPublicKeys = nodeCycleMapper.selectLastPublicKeys(currentRoundView);
-        List<NodeCycle> nodeCycleListTemp = nodeCycleMapper.selectCycleData(currentRoundView);
-
+        List<NodeCycle> nodeCycleListTemp = nodeCycleMapper.selectCycleData(lastRoundView);
+        List<String> lastPublicKeys = new ArrayList<String>();
+        nodeCycleListTemp.forEach(item -> lastPublicKeys.add(item.getPublicKey()));
         Map<String, BigDecimal> pub2bonusMap = nodeCycleYield(nodeCycleListTemp);
-        nodeCycleListTemp.forEach(item -> {
-            if (item.getNodeType() == 1 || item.getNodeType() == 2) {
-                BigDecimal bonusOng = pub2bonusMap.get(item.getPublicKey());
-                nodeCycleMapper.updateBonusOng(bonusOng.doubleValue(), item.getPublicKey(), item.getCycle());
-            }
-        });
 
         List<NodeCycle> nodeCycleList = new ArrayList<>();
         nodes.forEach(item -> {
@@ -827,18 +804,21 @@ public class ConsensusNodeService {
             // 与历史数据进行比较判断是否是新注册的状态
             Integer nodeType = item.getStatus();
             nodeCycle.setNodeType(nodeType);
-
-            peerPool.keySet().forEach(pubkey -> {
-                if (lastPublicKeys.contains(publicKey)) {
+            if (lastPublicKeys.contains(publicKey)) {
+                // 上次有这个数据, 根据上次的数据类型进行判断, list集合为有序的
+                if (nodeType == 1 || nodeType == 2) {
                     nodeCycle.setStatus(1);
-                } else if (nodeCycle.getNodeType() != 0 && nodeCycle.getNodeType() != 1 && nodeCycle.getNodeType() != 2) {
+                } else if (nodeType == 3 || nodeType == 4) {
                     nodeCycle.setStatus(2);
                 } else {
-                    nodeCycle.setStatus(0);
+                    nodeCycle.setStatus(3);
                 }
-            });
+            } else if (nodeCycle.getNodeType() == 0) {
+                nodeCycle.setStatus(0);
+            } else {
+                nodeCycle.setStatus(3);
+            }
             HashMap<String, Object> attribute = getAttributes(publicKey);
-
             // 本周期的数据存放
             nodeCycle.setNodeProportionT((100 - (int) attribute.get("tPeerCost") + "%"));
             nodeCycle.setNodeProportionT2((100 - (int) attribute.get("t2PeerCost") + "%"));
@@ -854,8 +834,12 @@ public class ConsensusNodeService {
             nodeCycle.setUserStakeONT(item.getTotalPos().intValue());
             int thisCycle = getRoundStartView();
             nodeCycle.setCycle(thisCycle);
-            nodeCycle.setBonusOng(Double.valueOf("0.0"));
-            nodeCycleMapper.updateLastCycleProportion(publicKey, thisCycle - 1, t1NodeCost, t1UserCost);
+            nodeCycle.setBonusOng(BigDecimal.valueOf(0));
+
+            if (item.getStatus() == 1 || item.getStatus() == 2) {
+                BigDecimal bonusOng = pub2bonusMap.get(publicKey);
+                nodeCycleMapper.updateLastCycleProportion(publicKey, thisCycle - 1, t1NodeCost, t1UserCost, bonusOng);
+            }
             nodeCycleList.add(nodeCycle);
         });
         nodeCycleMapper.batchSave(nodeCycleList);
@@ -866,6 +850,11 @@ public class ConsensusNodeService {
         HashMap<String, BigDecimal> mapOfInspire = new HashMap<>();
         Integer cycleNum = nodeCycleList.get(0).getCycle();
         NodeOverviewHistory nodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(cycleNum);
+        // overview表未更新
+        if (nodeOverviewHistory.getRndEndTime() == null) {
+            Integer rndEndBlockTime = ontSdkService.getBlockTimeByHeight(nodeOverviewHistory.getRndEndBlk().intValue());
+            nodeOverviewHistory.setRndEndTime(rndEndBlockTime);
+        }
         List<NodeCycle> consensusNodes = new ArrayList<>();
         List<NodeCycle> candidateNodes = new ArrayList<>();
         for (int i = 0; i < nodeCycleList.size(); i++) {
@@ -893,13 +882,13 @@ public class ConsensusNodeService {
         BigDecimal releaseOng = new BigDecimal(nodeOverviewHistory.getRndEndTime() - nodeOverviewHistory.getRndStartTime()).multiply(new BigDecimal(paramsConfig.releaseOngRatio));
         // 该周期所有手续费ONG
         BigDecimal commission = txDetailMapper.findFeeAmountOneCycle(nodeOverviewHistory.getRndStartBlk().intValue(), nodeOverviewHistory.getRndEndBlk().intValue());
-        // 该周期所有ONG激励  总的ong 手续费,
+        // 该周期所有ONG激励  总的ong 手续费
         BigDecimal cycleTotalOng = releaseOng.add(commission);
         // 节点的收益计算
         BigDecimal finalOngIncentive = new BigDecimal(0);
         for (int i = 0; i < nodeCycleList.size(); i++) {
             NodeCycle nodeCycle = nodeCycleList.get(i);
-            BigDecimal currentStake = new BigDecimal(getCurrentStakeByPubKey(nodeCycle.getPublicKey()));
+            BigDecimal currentStake = new BigDecimal(nodeCycle.getNodeStakeONT() + nodeCycle.getUserStakeONT());
             // 使用节点的状态来进行判断
             if (nodeCycle.getNodeType() == 2) {
                 BigDecimal consensusInspire = consensusInspireMap.get(nodeCycle.getPublicKey());

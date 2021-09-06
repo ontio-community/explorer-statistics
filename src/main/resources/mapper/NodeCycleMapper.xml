@@ -46,12 +46,6 @@
     </insert>
 
 
-    <select id="selectLastPublicKeys" resultType="String">
-        SELECT public_key
-        FROM tbl_node_cycle_data
-        WHERE cycle = #{cycle}
-    </select>
-
     <select id="selectCycleData" resultType="com.github.ontio.explorer.statistics.model.NodeCycle">
         select *
         FROM tbl_node_cycle_data
@@ -62,18 +56,12 @@
     <update id="updateLastCycleProportion" >
         UPDATE tbl_node_cycle_data
         SET node_proportion_t2 = #{nodeProportionT2},
-            user_proportion_t2 = #{userProportionT2}
+            user_proportion_t2 = #{userProportionT2},
+            bonus_ong = #{bonusOng}
         WHERE public_key = #{publicKey}
           AND cycle = #{cycle}
     </update>
 
-
-    <select id="selectCycleNodeCount" resultType="Integer">
-        SELECT COUNT(1)
-        FROM tbl_node_cycle_data
-        WHERE node_type = #{nodeType}
-          AND cycle = #{cycleNum}
-    </select>
 
     <update id="updateBonusOng" >
         UPDATE tbl_node_cycle_data
