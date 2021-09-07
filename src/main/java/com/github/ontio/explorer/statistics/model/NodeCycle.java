@@ -50,6 +50,9 @@ public class NodeCycle {
     @Column(name = "user_proportion_t2")
     private String userProportionT2;
 
+    @Column(name = "max_authorize")
+    private Integer maxAuthorize;
+
     @Column(name = "bonus_ong")
     private BigDecimal bonusOng;
 

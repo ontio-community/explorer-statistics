@@ -20,6 +20,7 @@
         `user_proportion_t`,
         `node_proportion_t2`,
         `user_proportion_t2`,
+        `max_authorize`,
         `bonus_ong`,
         `node_stake_ont`,
         `user_stake_ont`,
@@ -36,6 +37,7 @@
             #{item.userProportionT},
             #{item.nodeProportionT2},
             #{item.userProportionT2},
+            #{item.maxAuthorize},
             #{item.bonusOng},
             #{item.nodeStakeONT},
             #{item.userStakeONT},
@@ -59,7 +61,8 @@
         SET name = #{name},
             node_proportion_t2 = #{nodeProportionT2},
             user_proportion_t2 = #{userProportionT2},
-            bonus_ong = #{bonusOng}
+            bonus_ong = #{bonusOng},
+            max_authorize = #{maxAuthorize}
         WHERE public_key = #{publicKey}
           AND cycle = #{cycle}
     </update>

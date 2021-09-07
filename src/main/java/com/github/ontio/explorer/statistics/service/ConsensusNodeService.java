@@ -765,10 +765,12 @@ public class ConsensusNodeService {
                 nodeCycle.setStatus(3);
             }
             HashMap<String, Object> attribute = getAttributes(publicKey);
+            int maxAuthorize = Integer.parseInt(attribute.get("maxAuthorize").toString());
             nodeCycle.setNodeProportionT((100 - (int) attribute.get("tPeerCost") + "%"));
             nodeCycle.setNodeProportionT2((100 - (int) attribute.get("t2PeerCost") + "%"));
             nodeCycle.setUserProportionT((100 - (int) attribute.get("tStakeCost") + "%"));
             nodeCycle.setUserProportionT2((100 - (int) attribute.get("t2StakeCost") + "%"));
+            nodeCycle.setMaxAuthorize(maxAuthorize);
             // 本周周期的节点激励需要下周期更新其数据
             nodeCycle.setBonusOng(BigDecimal.valueOf(0));
             nodeCycle.setNodeStakeONT(item.getInitPos().intValue());
@@ -813,11 +815,13 @@ public class ConsensusNodeService {
                 nodeCycle.setStatus(0);
             }
             HashMap<String, Object> attribute = getAttributes(publicKey);
+            int maxAuthorize = Integer.parseInt(attribute.get("maxAuthorize").toString());
             // 本周期的数据存放
             nodeCycle.setNodeProportionT((100 - (int) attribute.get("tPeerCost") + "%"));
             nodeCycle.setNodeProportionT2((100 - (int) attribute.get("t2PeerCost") + "%"));
             nodeCycle.setUserProportionT((100 - (int) attribute.get("tStakeCost") + "%"));
             nodeCycle.setUserProportionT2((100 - (int) attribute.get("t2StakeCost") + "%"));
+            nodeCycle.setMaxAuthorize(maxAuthorize);
 
             // 更新上个周期的数据
             String t1NodeCost = 100 - (int) attribute.get("t1PeerCost") + "%";
@@ -833,7 +837,7 @@ public class ConsensusNodeService {
             if (bonusOng == null) {
                 bonusOng = BigDecimal.ZERO;
             }
-            nodeCycleMapper.updateLastCycleProportion(publicKey, lastRoundView, item.getName(), t1NodeCost, t1UserCost, bonusOng);
+            nodeCycleMapper.updateLastCycleProportion(publicKey, lastRoundView, item.getName(), t1NodeCost, t1UserCost, bonusOng, maxAuthorize);
 
             nodeCycleList.add(nodeCycle);
         });
