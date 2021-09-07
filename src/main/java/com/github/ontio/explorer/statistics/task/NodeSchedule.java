@@ -106,7 +106,7 @@ public class NodeSchedule {
     }
 
 
-    @Scheduled(fixedDelayString = "${node-schedule-task.update-cycle-time}")
+    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-cycle-time}")
     public void updateCycle() {
         try {
             log.info("update node cycle data begin");
