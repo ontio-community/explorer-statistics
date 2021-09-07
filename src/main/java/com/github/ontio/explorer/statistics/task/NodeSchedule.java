@@ -113,7 +113,7 @@ public class NodeSchedule {
             consensusNodeService.updateNodeCycleData();
             log.info("update node cycle data end ");
         } catch (Exception e) {
-            log.warn("update node cycle data  failed: {}", e.getMessage());
+            log.warn("update node cycle data  failed: {}", e);
         }
 
     }
