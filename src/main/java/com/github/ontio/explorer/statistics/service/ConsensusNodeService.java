@@ -801,7 +801,8 @@ public class ConsensusNodeService {
             BigDecimal bonusOng = pub2bonusMap.get(lastPublicKey);
             // 这个周期节点中已经不包含的上个周期的节点, 更新到这个周期中
             if (!currentPublicKeys.contains(lastPublicKey)) {
-                NodeCycle nodeCycle = NodeCycle.builder().publicKey(lastPublicKey).cycle(item.getCycle())
+                NodeCycle nodeCycle = NodeCycle.builder()
+                        .publicKey(lastPublicKey)
                         .address(item.getAddress())
                         .name(item.getName())
                         .status(2).nodeType(4)
@@ -811,7 +812,9 @@ public class ConsensusNodeService {
                         .userProportionT2("0%")
                         .maxAuthorize(item.getMaxAuthorize())
                         .bonusOng(BigDecimal.valueOf(0))
-                        .nodeStakeONT(0).userStakeONT(0).cycle(currentRoundView).build();
+                        .nodeStakeONT(0).userStakeONT(0)
+                        .cycle(currentRoundView)
+                        .build();
                 nodeCycleMapper.insertSelective(nodeCycle);
                 nodeCycleMapper.updateLastCycleBonus(lastPublicKey, lastRoundView, bonusOng);
             }
