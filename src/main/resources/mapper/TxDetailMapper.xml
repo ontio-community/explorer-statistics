@@ -76,11 +76,13 @@
 
     <select id="findFeeAmountOneCycle" resultType="java.math.BigDecimal">
         SELECT
-            SUM( fee )
+        SUM( fee )
         FROM
-            tbl_tx_detail
-        WHERE
-            block_height <![CDATA[>=]]> #{startBlock} AND block_height <![CDATA[<=]]> #{endBlock};
+        ( SELECT tx_hash, fee
+        FROM tbl_tx_detail
+        WHERE <![CDATA[>=]]> #{startBlock}
+        AND block_height <![CDATA[<=]]> #{endBlock}
+        GROUP BY tx_hash ) t;
     </select>
 
 </mapper>
