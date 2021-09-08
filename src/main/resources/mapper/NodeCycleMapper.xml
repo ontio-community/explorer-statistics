@@ -58,20 +58,18 @@
 
     <update id="updateLastCycleProportion">
         UPDATE tbl_node_cycle_data
-        SET name = #{name},
-            node_proportion_t2 = #{nodeProportionT2},
+        SET node_proportion_t2 = #{nodeProportionT2},
             user_proportion_t2 = #{userProportionT2},
-            bonus_ong = #{bonusOng},
-            max_authorize = #{maxAuthorize}
+            bonus_ong = #{bonusOng}
         WHERE public_key = #{publicKey}
           AND cycle = #{cycle}
     </update>
 
 
-    <update id="updateBonusOng">
+    <update id="updateLastCycleBonus">
         UPDATE tbl_node_cycle_data
         SET bonus_ong = #{bonusOng}
-        WHERE public_key = #{pubKey} AND cycle = #{cycleNum}
+        WHERE public_key = #{publicKey} AND cycle = #{cycle}
     </update>
 
 

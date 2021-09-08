@@ -788,8 +788,34 @@ public class ConsensusNodeService {
         // 只查出上周期在线的节点
         List<NodeCycle> nodeCycleListTemp = nodeCycleMapper.selectCycleData(lastRoundView);
         List<String> lastPublicKeys = new ArrayList<>();
-        nodeCycleListTemp.forEach(item -> lastPublicKeys.add(item.getPublicKey()));
+        List<String> currentPublicKeys = new ArrayList<>();
+        // 在MAP 集合中已经有上次中周期的数据
         Map<String, BigDecimal> pub2bonusMap = nodeCycleYield(nodeCycleListTemp);
+
+        // 将上次的节点进行遍历,与当前周期的节点PublicKey List进行判断,如果当前周期没有上次的节点, 那么节点退出状态
+        nodes.forEach(item -> currentPublicKeys.add(item.getPublicKey()));
+
+        nodeCycleListTemp.forEach(item -> {
+            String lastPublicKey = item.getPublicKey();
+            lastPublicKeys.add(lastPublicKey);
+            BigDecimal bonusOng = pub2bonusMap.get(lastPublicKey);
+            // 这个周期节点中已经不包含的上个周期的节点, 更新到这个周期中
+            if (!currentPublicKeys.contains(lastPublicKey)) {
+                NodeCycle nodeCycle = NodeCycle.builder().publicKey(lastPublicKey).cycle(item.getCycle())
+                        .address(item.getAddress())
+                        .name(item.getName())
+                        .status(2).nodeType(4)
+                        .nodeProportionT("0%")
+                        .userProportionT("0%")
+                        .nodeProportionT2("0%")
+                        .userProportionT2("0%")
+                        .maxAuthorize(item.getMaxAuthorize())
+                        .bonusOng(BigDecimal.valueOf(0))
+                        .nodeStakeONT(0).userStakeONT(0).cycle(currentRoundView).build();
+                nodeCycleMapper.insertSelective(nodeCycle);
+                nodeCycleMapper.updateLastCycleBonus(lastPublicKey, lastRoundView, bonusOng);
+            }
+        });
 
         List<NodeCycle> nodeCycleList = new ArrayList<>();
         nodes.forEach(item -> {
@@ -837,8 +863,7 @@ public class ConsensusNodeService {
             if (bonusOng == null) {
                 bonusOng = BigDecimal.ZERO;
             }
-            nodeCycleMapper.updateLastCycleProportion(publicKey, lastRoundView, item.getName(), t1NodeCost, t1UserCost, bonusOng, maxAuthorize);
-
+            nodeCycleMapper.updateLastCycleProportion(publicKey, lastRoundView, t1NodeCost, t1UserCost, bonusOng);
             nodeCycleList.add(nodeCycle);
         });
         nodeCycleMapper.batchSave(nodeCycleList);
