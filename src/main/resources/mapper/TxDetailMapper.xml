@@ -80,7 +80,7 @@
         FROM
         ( SELECT tx_hash, fee
         FROM tbl_tx_detail
-        WHERE <![CDATA[>=]]> #{startBlock}
+        WHERE block_height <![CDATA[>=]]> #{startBlock}
         AND block_height <![CDATA[<=]]> #{endBlock}
         GROUP BY tx_hash ) t;
     </select>
