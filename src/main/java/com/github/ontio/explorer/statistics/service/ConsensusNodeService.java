@@ -841,7 +841,13 @@ public class ConsensusNodeService {
                     nodeCycle.setStatus(3);
                 }
             } else {
-                nodeCycle.setStatus(0);
+                if (nodeType == 1 || nodeType == 2) {
+                    nodeCycle.setStatus(0);
+                } else if (nodeType == 3 || nodeType == 4) {
+                    nodeCycle.setStatus(2);
+                } else {
+                    nodeCycle.setStatus(3);
+                }
             }
             HashMap<String, Object> attribute = getAttributes(publicKey);
             int maxAuthorize = Integer.parseInt(attribute.get("maxAuthorize").toString());
