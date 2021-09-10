@@ -18,4 +18,6 @@ public interface NodeOverviewHistoryMapper extends Mapper<NodeOverviewHistory> {
 
     List<NodeOverviewHistory> queryRoundByCycle(@Param("cycle") Integer cycle);
 
+    NodeOverviewHistory queryNodeDetailByCycle(@Param("cycle") Integer cycle);
+
 }

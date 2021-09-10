@@ -105,4 +105,17 @@ public class NodeSchedule {
         }
     }
 
+
+    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-cycle-time}")
+    public void updateCycle() {
+        try {
+            log.info("update node cycle data begin");
+            consensusNodeService.updateNodeCycleData();
+            log.info("update node cycle data end ");
+        } catch (Exception e) {
+            log.warn("update node cycle data  failed: {}", e);
+        }
+
+    }
+
 }

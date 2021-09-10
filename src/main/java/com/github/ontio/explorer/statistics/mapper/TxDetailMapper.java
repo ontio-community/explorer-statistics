@@ -38,4 +38,6 @@ public interface TxDetailMapper extends Mapper<TxDetail> {
 
     BigDecimal findFeeAmountOneMonth(int now, int before);
 
+    BigDecimal findFeeAmountOneCycle(int startBlock, int endBlock);
+
 }

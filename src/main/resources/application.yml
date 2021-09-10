@@ -78,3 +78,4 @@ node-schedule-task:
   update-block-count-to-next-round: 10000
   update-node-rank-history: 300000
   update-node-annualized-yield: 3600000
+  update-cycle-time: 30000
