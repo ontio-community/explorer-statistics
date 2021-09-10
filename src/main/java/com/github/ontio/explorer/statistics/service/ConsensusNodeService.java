@@ -585,9 +585,10 @@ public class ConsensusNodeService {
                 // 用户收益
                 BigDecimal fpFu = fpFuList.get(i);
                 userStake = currentStake.subtract(fpFu);
-                BigDecimal siPb = currentStake.multiply(initUserProportion);
-                BigDecimal add = siPb.divide(siSubFp, 12, BigDecimal.ROUND_HALF_UP).add(second);
-                userFoundationInspire = first.multiply(userStake).multiply(add);
+                // 20210801之后没有基金会收益
+//                BigDecimal siPb = currentStake.multiply(initUserProportion);
+//                BigDecimal add = siPb.divide(siSubFp, 12, BigDecimal.ROUND_HALF_UP).add(second);
+//                userFoundationInspire = first.multiply(userStake).multiply(add);
             } else if (i < 49 && now < Constants.UTC_20210801) {
                 foundationInspire = first.multiply(currentStake).multiply(new BigDecimal(1).add(second));
             }
