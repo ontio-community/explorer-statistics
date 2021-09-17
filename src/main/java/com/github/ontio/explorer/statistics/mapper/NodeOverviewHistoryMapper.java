@@ -20,4 +20,5 @@ public interface NodeOverviewHistoryMapper extends Mapper<NodeOverviewHistory> {
 
     NodeOverviewHistory queryNodeDetailByCycle(@Param("cycle") Integer cycle);
 
+    Integer getCurrentRound();
 }

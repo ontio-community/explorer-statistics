@@ -35,4 +35,6 @@ public class Constants {
     public static final Integer UTC_20210801 = 1627776000;
 
     public static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
+
+    public static final Integer RECENT_BLOCK_VELOCITY = 2500;
 }

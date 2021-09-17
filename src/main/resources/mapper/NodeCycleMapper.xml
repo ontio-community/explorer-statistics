@@ -7,6 +7,23 @@
         FROM tbl_node_cycle_data
     </select>
 
+    <sql id="detailColumns">
+        id as id,
+        public_key as `publicKey`,
+        address as address,
+        name as name,
+        status as status,
+        node_type as nodeType,
+        node_proportion_t as nodeProportionT,
+        user_proportion_t as userProportionT,
+        node_proportion_t2 as nodeProportionT2,
+        user_proportion_t2 as userProportionT2,
+        max_authorize as maxAuthorize,
+        bonus_ong as bonusOng,
+        node_stake_ont as nodeStakeONT,
+        user_stake_ont as userStakeONT,
+        cycle as cycle
+    </sql>
 
     <insert id="batchSave">
         INSERT INTO tbl_node_cycle_data
@@ -48,8 +65,10 @@
     </insert>
 
 
+
     <select id="selectCycleData" resultType="com.github.ontio.explorer.statistics.model.NodeCycle">
-        select *
+        select
+        <include refid="detailColumns"></include>
         FROM tbl_node_cycle_data
         WHERE cycle = #{cycle}
         AND status IN (0,1)
@@ -72,5 +91,13 @@
         WHERE public_key = #{publicKey} AND cycle = #{cycle}
     </update>
 
+    <select id="selectCycleDataByPublicKey" resultType="com.github.ontio.explorer.statistics.model.NodeCycle">
+        select
+        <include refid="detailColumns"></include>
+        FROM tbl_node_cycle_data
+        WHERE public_key = #{publicKey}
+        AND status IN (0,1)
+        ORDER BY cycle DESC
+    </select>
 
 </mapper>

@@ -9,4 +9,7 @@ public interface NodeOverviewMapper extends Mapper<NodeOverview> {
 
     void updateBlkCntToNxtRnd(Long blkCntToNxtRnd);
 
+    Long selectBlkCountToNxtRnd();
+
+    Long updateLeftTimeToNxtRnd(Long leftTimeToNextRnd);
 }
