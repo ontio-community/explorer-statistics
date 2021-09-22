@@ -75,6 +75,8 @@ public class ConsensusNodeService {
 
     private NodeCycleMapper nodeCycleMapper;
 
+    private BlockMapper blockMapper;
+
     @Autowired
     public ConsensusNodeService(ParamsConfig paramsConfig,
                                 ObjectMapper objectMapper,
@@ -90,7 +92,8 @@ public class ConsensusNodeService {
                                 StatisticsService statisticsService,
                                 InspireCalculationParamsMapper inspireCalculationParamsMapper,
                                 TxEventLogMapper txEventLogMapper,
-                                NodeCycleMapper nodeCycleMapper) {
+                                NodeCycleMapper nodeCycleMapper,
+                                BlockMapper blockMapper) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -106,6 +109,7 @@ public class ConsensusNodeService {
         this.inspireCalculationParamsMapper = inspireCalculationParamsMapper;
         this.txEventLogMapper = txEventLogMapper;
         this.nodeCycleMapper = nodeCycleMapper;
+        this.blockMapper = blockMapper;
     }
 
     public void updateBlockCountToNextRound() {
