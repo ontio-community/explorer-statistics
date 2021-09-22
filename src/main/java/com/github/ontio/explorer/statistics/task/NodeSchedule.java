@@ -116,7 +116,7 @@ public class NodeSchedule {
             consensusNodeService.updateNodeCycleData();
             log.info("update node cycle data end ");
         } catch (Exception e) {
-            log.warn("update node cycle data  failed: {}", e.toString());
+            log.warn("update node cycle data  failed: {}", e);
         }
     }
 
@@ -127,7 +127,7 @@ public class NodeSchedule {
             consensusNodeService.updateLeftRoundTime();
             log.info("update node round left time end... ");
         } catch (Exception e) {
-            log.warn("update node round left time failed: {}", e.toString());
+            log.warn("update node round left time failed: {}", e);
         }
     }
 
@@ -138,7 +138,7 @@ public class NodeSchedule {
             consensusNodeService.updateStableNode();
             log.info("update stable node status task  end... ");
         } catch (Exception e) {
-            log.warn("update stable node status task  failed: {}", e.toString());
+            log.warn("update stable node status task  failed: {}", e);
         }
     }
 
