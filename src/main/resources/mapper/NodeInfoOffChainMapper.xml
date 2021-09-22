@@ -48,7 +48,7 @@ WHERE
   </insert>
 
 
-    <update id="updateStableNodeBuPubKey" >
+    <update id="updateStableNodeByPubKey" >
         UPDATE tbl_node_info_off_chain
         SET fee_sharing_ratio = 1
         WHERE public_key = #{publicKey}

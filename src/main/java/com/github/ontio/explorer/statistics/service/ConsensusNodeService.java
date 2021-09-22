@@ -743,9 +743,6 @@ public class ConsensusNodeService {
     private void initNodeCycle() {
         Map peerPool = getPeerPool();
         List<NodeInfoOnChain> nodes = filterNodes(peerPool);
-//        List<NodeInfoOnChain> nodeInfos = calcNodeInfo(nodes);
-//        nodes = matchNodeName(nodeInfos);
-
         List<NodeCycle> nodeCycleList = new ArrayList<>();
         nodes.forEach(item -> {
             NodeCycle nodeCycle = NodeCycle.builder().build();
@@ -945,20 +942,21 @@ public class ConsensusNodeService {
 
         Block blockCurrent = blockMapper.selectMaxBlock();
         Integer currentBlockHeight = blockCurrent.getBlockHeight();
-        Block blockBefore = blockMapper.selectOneBlockByHeight(currentBlockHeight - Constants.RECENT_BLOCK_VELOCITY);
+        Block blockBefore = blockMapper.selectOneBlockByHeight(currentBlockHeight - Constants.RECENT_BLOCK_VELOCITY.intValue());
 
         int costTime = blockCurrent.getBlockTime() - blockBefore.getBlockTime();
 
-        velocity = (BigDecimal.valueOf(Constants.RECENT_BLOCK_VELOCITY)).divide(new BigDecimal(costTime), 6, BigDecimal.ROUND_HALF_UP);
+        velocity = (Constants.RECENT_BLOCK_VELOCITY).divide(new BigDecimal(costTime), 6, BigDecimal.ROUND_HALF_UP);
 
         NodeOverviewHistory lastNodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(currentRound - 1);
         NodeOverviewHistory last2NodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(currentRound - 2);
 
         int i2 = last2NodeOverviewHistory.getRndEndTime() - last2NodeOverviewHistory.getRndStartTime();
         int i1 = lastNodeOverviewHistory.getRndEndTime() - lastNodeOverviewHistory.getRndStartTime();
-        double bdvalue = new BigDecimal(leftBlockHeight).divide(velocity, 6, BigDecimal.ROUND_HALF_UP).divide(new BigDecimal(60000), 6, BigDecimal.ROUND_HALF_UP).doubleValue() * (60000 - leftBlockHeight);
+        BigDecimal bdvalue = new BigDecimal(leftBlockHeight).divide(velocity, 6, BigDecimal.ROUND_HALF_UP).divide(new BigDecimal(60000), 6, BigDecimal.ROUND_HALF_UP).multiply(new BigDecimal((60000 - leftBlockHeight)));
 
-        Double leftTime = bdvalue + (0.4 * i1 + 0.6 * i2) * (leftBlockHeight / 60000) * (leftBlockHeight / 60000);
+        BigDecimal leftTime = bdvalue.add(BigDecimal.valueOf((0.4 * i2 + 0.6 * i1) * (leftBlockHeight / 60000) * (leftBlockHeight / 60000)));
+        log.info("left round time is {}", leftTime.toPlainString());
         nodeOverviewMapper.updateLeftTimeToNxtRnd(leftTime.longValue());
     }
 
@@ -967,28 +965,31 @@ public class ConsensusNodeService {
         List<NodeCycle> nodeCycleListCurrent = nodeCycleMapper.selectCycleData(currentCycle);
         int beginCycle = currentCycle - 10;
         List<NodeCycle> nodeCycleListBegin = nodeCycleMapper.selectCycleData(beginCycle);
-        if (nodeCycleListBegin == null) {
+        if (CollectionUtils.isEmpty(nodeCycleListBegin)) {
             return;
         }
         for (NodeCycle nodeCycle : nodeCycleListCurrent) {
             String publicKey = nodeCycle.getPublicKey();
-            List<NodeCycle> nodeCycleListByPublicKey = nodeCycleMapper.selectCycleDataByPublicKey(publicKey);
-            // 不够10个周期
+            List<NodeCycle> nodeCycleListByPublicKey = nodeCycleMapper.selectCycleDataByPublicKey(publicKey, 10);
             if (nodeCycleListByPublicKey.size() < 10) {
                 continue;
             }
             String nodeProportionT = nodeCycle.getNodeProportionT();
             String userProportionT = nodeCycle.getUserProportionT();
-
-            for (NodeCycle nodeCycleByPubKey : nodeCycleListByPublicKey) {
-                Integer userStakeONT_last = nodeCycleByPubKey.getUserStakeONT();
-                Integer nodeStakeONT_last = nodeCycleByPubKey.getNodeStakeONT();
-                if ((!userStakeONT_last.equals(nodeProportionT)) || !nodeStakeONT_last.equals(userProportionT)) {
-                    break;
+            boolean flag1 = false;
+            for (NodeCycle cycle : nodeCycleListByPublicKey) {
+                String userProportionT1_last = cycle.getUserProportionT();
+                String nodeProportionT1_last = cycle.getNodeProportionT();
+                if (nodeProportionT.equals(nodeProportionT1_last) && userProportionT.equals(userProportionT1_last)) {
+                    flag1 = true;
                 } else {
-                    nodeInfoOffChainMapper.updateStableNodeBuPubKey(publicKey);
+                    flag1 = false;
+                    break;
                 }
+            }
+            log.info("add a stable node , public key: {}", publicKey);
+            if (flag1) {
+                nodeInfoOffChainMapper.updateStableNodeByPubKey(publicKey);
             }
         }
     }
-}

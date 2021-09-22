@@ -43,7 +43,7 @@ public class NodeSchedule {
         this.consensusNodeService = consensusNodeService;
     }
 
-    @Scheduled(fixedDelayString = "${node-schedule-task.update-on-chain-info}")
+//    @Scheduled(fixedDelayString = "${node-schedule-task.update-on-chain-info}")
     public void updateNodeInfo() {
         try {
             log.info("Updating consensus node information start");
@@ -56,7 +56,8 @@ public class NodeSchedule {
         }
     }
 
-    @Scheduled(cron = "${node-schedule-task.update-net-nodes-info}")
+    // 更新节点信息
+//    @Scheduled(cron = "${node-schedule-task.update-net-nodes-info}")
     public void updateNetNodesInfo() {
         try {
             log.info("Updating global network nodes info task begin");
@@ -69,7 +70,7 @@ public class NodeSchedule {
         }
     }
 
-    @Scheduled(fixedDelayString = "${node-schedule-task.update-block-count-to-next-round}")
+    //    @Scheduled(fixedDelayString = "${node-schedule-task.update-block-count-to-next-round}")
     public void updateBlockCountToNextRound() {
         try {
             log.info("Updating block count to next round task begin");
@@ -80,10 +81,13 @@ public class NodeSchedule {
         }
     }
 
-    @Scheduled(fixedDelayString = "${node-schedule-task.update-node-rank-history}")
+
+    // 节点排名的改变与更新
+//    @Scheduled(fixedDelayString = "${node-schedule-task.update-node-rank-history}")
     public void updateNodeRankHistory() {
         try {
             log.info("Updating node rank history task begin");
+            //
             consensusNodeService.updateNodeRankHistory();
             log.info("Updating node rank history task end");
             log.info("Updating node rank change task begin");
@@ -94,7 +98,7 @@ public class NodeSchedule {
         }
     }
 
-    @Scheduled(initialDelay = 10 * 1000, fixedDelayString = "${node-schedule-task.update-node-annualized-yield}")
+    //    @Scheduled(initialDelay = 10 * 1000, fixedDelayString = "${node-schedule-task.update-node-annualized-yield}")
     public void updateNodeAnnualizedYield() {
         try {
             log.info("Updating node annualized yield task begin");
@@ -106,7 +110,7 @@ public class NodeSchedule {
     }
 
 
-    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-cycle-time}")
+    //    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-cycle-time}")
     public void updateCycle() {
         try {
             log.info("update node cycle data begin");
@@ -128,7 +132,7 @@ public class NodeSchedule {
         }
     }
 
-    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.}")
+    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-stable-node}")
     public void updateStableNode() {
         try {
             log.info("update stable node status task begin");

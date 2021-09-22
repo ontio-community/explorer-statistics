@@ -36,5 +36,5 @@ public class Constants {
 
     public static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
 
-    public static final Integer RECENT_BLOCK_VELOCITY = 2500;
+    public static final BigDecimal RECENT_BLOCK_VELOCITY = new BigDecimal(2500);
 }

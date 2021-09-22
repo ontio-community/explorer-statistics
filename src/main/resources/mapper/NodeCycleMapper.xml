@@ -98,6 +98,7 @@
         WHERE public_key = #{publicKey}
         AND status IN (0,1)
         ORDER BY cycle DESC
+        limit #{size}
     </select>
 
 </mapper>
