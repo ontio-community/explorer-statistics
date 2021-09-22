@@ -79,3 +79,5 @@ node-schedule-task:
   update-node-rank-history: 300000
   update-node-annualized-yield: 3600000
   update-cycle-time: 30000
+  update-round--left-time: 18000000
+  update-stable-node: 86400000

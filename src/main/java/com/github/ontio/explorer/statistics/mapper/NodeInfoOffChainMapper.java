@@ -10,4 +10,6 @@ public interface NodeInfoOffChainMapper extends Mapper<NodeInfoOffChain> {
 
     int syncWithOnChainNodes();
 
+    int updateStableNodeByPubKey(String publicKey);
+
 }

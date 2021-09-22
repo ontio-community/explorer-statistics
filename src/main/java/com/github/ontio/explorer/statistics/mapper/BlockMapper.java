@@ -26,4 +26,8 @@ public interface BlockMapper extends Mapper<Block> {
     Integer selectBlockMaxTime();
 
     int selectBlockCountInOneDay(@Param("StartTime") long startTime, @Param("EndTime") long endTime);
+
+    Block selectMaxBlock();
+
+    Block selectOneBlockByHeight(Integer blockHeight);
 }
