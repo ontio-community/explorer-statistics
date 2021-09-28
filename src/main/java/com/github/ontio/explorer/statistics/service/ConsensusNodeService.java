@@ -992,6 +992,12 @@ public class ConsensusNodeService {
                     break;
                 }
             }
+            //两个周期和的的收益比例分配要大于80%才合格
+            Integer nodeProportionTCount = Integer.valueOf(nodeProportionT.trim().substring(0, nodeProportionT.trim().length() - 1));
+            Integer userProportionTCount = Integer.valueOf(userProportionT.trim().substring(0, nodeProportionT.trim().length() - 1));
+            if (nodeProportionTCount + userProportionTCount < 80) {
+                flag1 = false;
+            }
             log.info("add a stable node , public key: {}", publicKey);
             if (flag1) {
                 nodeInfoOffChainMapper.updateStableNodeByPubKey(publicKey);
