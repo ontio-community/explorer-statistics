@@ -957,9 +957,10 @@ public class ConsensusNodeService {
 
         int i2 = last2NodeOverviewHistory.getRndEndTime() - last2NodeOverviewHistory.getRndStartTime();
         int i1 = lastNodeOverviewHistory.getRndEndTime() - lastNodeOverviewHistory.getRndStartTime();
-        BigDecimal bdvalue = new BigDecimal(leftBlockHeight).divide(velocity, 6, BigDecimal.ROUND_HALF_UP).divide(new BigDecimal(60000), 6, BigDecimal.ROUND_HALF_UP).multiply(new BigDecimal((60000 - leftBlockHeight)));
 
-        BigDecimal leftTime = bdvalue.add(BigDecimal.valueOf((0.4 * i2 + 0.6 * i1) * (leftBlockHeight / 60000) * (leftBlockHeight / 60000)));
+        BigDecimal bdvalue = new BigDecimal(leftBlockHeight).divide(velocity, 6, BigDecimal.ROUND_HALF_UP).divide(new BigDecimal(paramsConfig.getMaxStakingChangeCount()), 6, BigDecimal.ROUND_HALF_UP).multiply(new BigDecimal(((paramsConfig.getMaxStakingChangeCount() - leftBlockHeight))));
+        BigDecimal pow = new BigDecimal(leftBlockHeight).divide(new BigDecimal(paramsConfig.getMaxStakingChangeCount())).multiply(new BigDecimal(leftBlockHeight).divide(new BigDecimal(paramsConfig.getMaxStakingChangeCount())));
+        BigDecimal leftTime = bdvalue.add(new BigDecimal((0.4 * i2 + 0.6 * i1)).multiply(pow)).setScale(4, RoundingMode.HALF_UP);
         log.info("left round time is {}", leftTime.toPlainString());
         nodeOverviewMapper.updateLeftTimeToNxtRnd(leftTime.longValue());
     }
