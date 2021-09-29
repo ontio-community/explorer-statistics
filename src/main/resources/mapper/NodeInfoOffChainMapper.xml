@@ -50,7 +50,7 @@ WHERE
 
     <update id="updateStableNodeByPubKey" >
         UPDATE tbl_node_info_off_chain
-        SET fee_sharing_ratio = 1
+        SET fee_sharing_ratio = #{status}
         WHERE public_key = #{publicKey}
     </update>
 
