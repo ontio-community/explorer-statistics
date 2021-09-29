@@ -1,6 +1,7 @@
 package com.github.ontio.explorer.statistics.mapper;
 
 import com.github.ontio.explorer.statistics.model.NodeInfoOffChain;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 import tk.mybatis.mapper.common.Mapper;
 
@@ -10,6 +11,6 @@ public interface NodeInfoOffChainMapper extends Mapper<NodeInfoOffChain> {
 
     int syncWithOnChainNodes();
 
-    int updateStableNodeByPubKey(String publicKey);
+    int updateStableNodeByPubKey(@Param("publicKey") String publicKey, @Param("status") Integer status);
 
 }

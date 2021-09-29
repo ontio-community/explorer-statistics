@@ -1000,7 +1000,10 @@ public class ConsensusNodeService {
             }
             if (flag1) {
                 log.info("add a stable node , public key: {}", publicKey);
-                nodeInfoOffChainMapper.updateStableNodeByPubKey(publicKey);
+                nodeInfoOffChainMapper.updateStableNodeByPubKey(publicKey, 1);
+            } else {
+                log.info("not a stable node,  public key: {}", publicKey);
+                nodeInfoOffChainMapper.updateStableNodeByPubKey(publicKey, 0);
             }
         }
     }
