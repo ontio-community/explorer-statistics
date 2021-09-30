@@ -66,5 +66,9 @@
         where cycle = #{cycle}
     </select>
 
+    <select id="getCurrentRound" resultType="Integer">
+        select max(cycle)
+        from tbl_node_overview_history
+    </select>
 
 </mapper>

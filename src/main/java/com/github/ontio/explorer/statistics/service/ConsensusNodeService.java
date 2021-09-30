@@ -75,6 +75,8 @@ public class ConsensusNodeService {
 
     private NodeCycleMapper nodeCycleMapper;
 
+    private BlockMapper blockMapper;
+
     @Autowired
     public ConsensusNodeService(ParamsConfig paramsConfig,
                                 ObjectMapper objectMapper,
@@ -90,7 +92,8 @@ public class ConsensusNodeService {
                                 StatisticsService statisticsService,
                                 InspireCalculationParamsMapper inspireCalculationParamsMapper,
                                 TxEventLogMapper txEventLogMapper,
-                                NodeCycleMapper nodeCycleMapper) {
+                                NodeCycleMapper nodeCycleMapper,
+                                BlockMapper blockMapper) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -106,6 +109,7 @@ public class ConsensusNodeService {
         this.inspireCalculationParamsMapper = inspireCalculationParamsMapper;
         this.txEventLogMapper = txEventLogMapper;
         this.nodeCycleMapper = nodeCycleMapper;
+        this.blockMapper = blockMapper;
     }
 
     public void updateBlockCountToNextRound() {
@@ -743,9 +747,6 @@ public class ConsensusNodeService {
     private void initNodeCycle() {
         Map peerPool = getPeerPool();
         List<NodeInfoOnChain> nodes = filterNodes(peerPool);
-//        List<NodeInfoOnChain> nodeInfos = calcNodeInfo(nodes);
-//        nodes = matchNodeName(nodeInfos);
-
         List<NodeCycle> nodeCycleList = new ArrayList<>();
         nodes.forEach(item -> {
             NodeCycle nodeCycle = NodeCycle.builder().build();
@@ -935,5 +936,75 @@ public class ConsensusNodeService {
             mapOfInspire.put(nodeCycle.getPublicKey(), finalOngIncentive);
         }
         return mapOfInspire;
+    }
+
+
+    public void updateLeftRoundTime() {
+        Long leftBlockHeight = nodeOverviewMapper.selectBlkCountToNxtRnd();
+        Integer currentRound = nodeOverviewHistoryMapper.getCurrentRound();
+        BigDecimal velocity = new BigDecimal(0);
+
+        Block blockCurrent = blockMapper.selectMaxBlock();
+        Integer currentBlockHeight = blockCurrent.getBlockHeight();
+        Block blockBefore = blockMapper.selectOneBlockByHeight(currentBlockHeight - Constants.RECENT_BLOCK_VELOCITY.intValue());
+
+        int costTime = blockCurrent.getBlockTime() - blockBefore.getBlockTime();
+
+        velocity = (Constants.RECENT_BLOCK_VELOCITY).divide(new BigDecimal(costTime), 6, BigDecimal.ROUND_HALF_UP);
+
+        NodeOverviewHistory lastNodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(currentRound - 1);
+        NodeOverviewHistory last2NodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(currentRound - 2);
+
+        int i2 = last2NodeOverviewHistory.getRndEndTime() - last2NodeOverviewHistory.getRndStartTime();
+        int i1 = lastNodeOverviewHistory.getRndEndTime() - lastNodeOverviewHistory.getRndStartTime();
+
+        BigDecimal bdvalue = new BigDecimal(leftBlockHeight).divide(velocity, 6, BigDecimal.ROUND_HALF_UP).divide(new BigDecimal(paramsConfig.getMaxStakingChangeCount()), 6, BigDecimal.ROUND_HALF_UP).multiply(new BigDecimal(((paramsConfig.getMaxStakingChangeCount() - leftBlockHeight))));
+        BigDecimal pow = new BigDecimal(leftBlockHeight).divide(new BigDecimal(paramsConfig.getMaxStakingChangeCount())).multiply(new BigDecimal(leftBlockHeight).divide(new BigDecimal(paramsConfig.getMaxStakingChangeCount())));
+        BigDecimal leftTime = bdvalue.add(new BigDecimal((0.4 * i2 + 0.6 * i1)).multiply(pow)).setScale(4, RoundingMode.HALF_UP);
+        log.info("left round time is {}", leftTime.toPlainString());
+        nodeOverviewMapper.updateLeftTimeToNxtRnd(leftTime.longValue());
+    }
+
+    public void updateStableNode() {
+        int currentCycle = nodeCycleMapper.selectMaxCycle();
+        List<NodeCycle> nodeCycleListCurrent = nodeCycleMapper.selectCycleData(currentCycle);
+        int beginCycle = currentCycle - 10;
+        List<NodeCycle> nodeCycleListBegin = nodeCycleMapper.selectCycleData(beginCycle);
+        if (CollectionUtils.isEmpty(nodeCycleListBegin)) {
+            return;
+        }
+        for (NodeCycle nodeCycle : nodeCycleListCurrent) {
+            String publicKey = nodeCycle.getPublicKey();
+            List<NodeCycle> nodeCycleListByPublicKey = nodeCycleMapper.selectCycleDataByPublicKey(publicKey, 10);
+            if (nodeCycleListByPublicKey.size() < 10) {
+                continue;
+            }
+            String nodeProportionT = nodeCycle.getNodeProportionT();
+            String userProportionT = nodeCycle.getUserProportionT();
+            boolean flag1 = false;
+            for (NodeCycle cycle : nodeCycleListByPublicKey) {
+                String userProportionT1_last = cycle.getUserProportionT();
+                String nodeProportionT1_last = cycle.getNodeProportionT();
+                if (nodeProportionT.equals(nodeProportionT1_last) && userProportionT.equals(userProportionT1_last)) {
+                    flag1 = true;
+                } else {
+                    flag1 = false;
+                    break;
+                }
+            }
+            //两个周期和的的收益比例分配要大于80%才合格
+            Integer nodeProportionTCount = Integer.valueOf(nodeProportionT.trim().substring(0, nodeProportionT.trim().length() - 1));
+            Integer userProportionTCount = Integer.valueOf(userProportionT.trim().substring(0, userProportionT.trim().length() - 1));
+            if (nodeProportionTCount + userProportionTCount < 80) {
+                flag1 = false;
+            }
+            if (flag1) {
+                log.info("add a stable node , public key: {}", publicKey);
+                nodeInfoOffChainMapper.updateStableNodeByPubKey(publicKey, 1);
+            } else {
+                log.info("not a stable node,  public key: {}", publicKey);
+                nodeInfoOffChainMapper.updateStableNodeByPubKey(publicKey, 0);
+            }
+        }
     }
 }

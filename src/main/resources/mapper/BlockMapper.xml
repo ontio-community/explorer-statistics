@@ -1,30 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.github.ontio.explorer.statistics.mapper.BlockMapper">
-  <resultMap id="BaseResultMap" type="com.github.ontio.explorer.statistics.model.Block">
+    <resultMap id="BaseResultMap" type="com.github.ontio.explorer.statistics.model.Block">
+        <!--
+          WARNING - @mbg.generated
+        -->
+        <result column="block_height" jdbcType="INTEGER" property="blockHeight"/>
+        <result column="block_hash" jdbcType="VARCHAR" property="blockHash"/>
+        <result column="txs_root" jdbcType="VARCHAR" property="txsRoot"/>
+        <result column="block_time" jdbcType="INTEGER" property="blockTime"/>
+        <result column="consensus_data" jdbcType="VARCHAR" property="consensusData"/>
+        <result column="bookkeepers" jdbcType="VARCHAR" property="bookkeepers"/>
+        <result column="tx_count" jdbcType="INTEGER" property="txCount"/>
+        <result column="block_size" jdbcType="INTEGER" property="blockSize"/>
+    </resultMap>
     <!--
-      WARNING - @mbg.generated
+    self-defined SQL
     -->
-    <result column="block_height" jdbcType="INTEGER" property="blockHeight" />
-    <result column="block_hash" jdbcType="VARCHAR" property="blockHash" />
-    <result column="txs_root" jdbcType="VARCHAR" property="txsRoot" />
-    <result column="block_time" jdbcType="INTEGER" property="blockTime" />
-    <result column="consensus_data" jdbcType="VARCHAR" property="consensusData" />
-    <result column="bookkeepers" jdbcType="VARCHAR" property="bookkeepers" />
-    <result column="tx_count" jdbcType="INTEGER" property="txCount" />
-    <result column="block_size" jdbcType="INTEGER" property="blockSize" />
-  </resultMap>
-  <!--
-  self-defined SQL
-  -->
-  <select id="selectBlockMaxTime" resultType="java.lang.Integer" useCache="false">
-    select MAX(block_time) as time
-    from tbl_block
-  </select>
-  <select id="selectBlockCountInOneDay" resultType="java.lang.Integer">
-    select count(*) as nums
-    from tbl_block
-    where block_time &gt;= #{StartTime}
-      and <![CDATA[ block_time < #{EndTime} ]]>
-  </select>
+
+    <sql id="basicColumns">
+        block_hash as blockHash,
+    block_height as blockHeight,
+    txs_root as txsRoot,
+    bookkeepers as bookkeepers,
+    consensus_data as consensusData,
+    block_size as blockSize,
+    block_time as blockTime,
+    tx_count as txCount
+    </sql>
+
+    <select id="selectBlockMaxTime" resultType="java.lang.Integer" useCache="false">
+        select MAX(block_time) as time
+        from tbl_block
+    </select>
+    <select id="selectBlockCountInOneDay" resultType="java.lang.Integer">
+        select count(*) as nums
+        from tbl_block
+        where block_time &gt;= #{StartTime}
+          and <![CDATA[ block_time < #{EndTime}
+        ]]>
+    </select>
+
+    <select id="selectMaxBlock" resultType="com.github.ontio.explorer.statistics.model.Block">
+        SELECT
+        <include refid="basicColumns"></include>
+        FROM tbl_block
+        ORDER BY block_height DESC
+        LIMIT 1
+    </select>
+
+
+    <select id="selectOneBlockByHeight" resultType="com.github.ontio.explorer.statistics.model.Block" parameterType="Integer" >
+        SELECT
+        <include refid="basicColumns"></include>
+        FROM tbl_block
+        WHERE block_height = #{blockHeight}
+    </select>
+
+
 </mapper>

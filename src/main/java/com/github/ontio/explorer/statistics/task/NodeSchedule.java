@@ -56,6 +56,7 @@ public class NodeSchedule {
         }
     }
 
+    // 更新节点信息
     @Scheduled(cron = "${node-schedule-task.update-net-nodes-info}")
     public void updateNetNodesInfo() {
         try {
@@ -80,10 +81,12 @@ public class NodeSchedule {
         }
     }
 
+
     @Scheduled(fixedDelayString = "${node-schedule-task.update-node-rank-history}")
     public void updateNodeRankHistory() {
         try {
             log.info("Updating node rank history task begin");
+            //
             consensusNodeService.updateNodeRankHistory();
             log.info("Updating node rank history task end");
             log.info("Updating node rank change task begin");
@@ -115,7 +118,28 @@ public class NodeSchedule {
         } catch (Exception e) {
             log.warn("update node cycle data  failed: {}", e);
         }
+    }
 
+    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-round-left-time}")
+    public void updateRoundLeftTime() {
+        try {
+            log.info("update node round left time begin");
+            consensusNodeService.updateLeftRoundTime();
+            log.info("update node round left time end... ");
+        } catch (Exception e) {
+            log.warn("update node round left time failed: {}", e);
+        }
+    }
+
+    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-stable-node}")
+    public void updateStableNode() {
+        try {
+            log.info("update stable node status task begin");
+            consensusNodeService.updateStableNode();
+            log.info("update stable node status task  end... ");
+        } catch (Exception e) {
+            log.warn("update stable node status task  failed: {}", e);
+        }
     }
 
 }

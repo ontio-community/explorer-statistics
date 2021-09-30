@@ -64,4 +64,14 @@ public class NodeInfoOffChain {
 
     private Integer verification;
 
+    @Column(name = "fee_sharing_ratio")
+    private Integer feeSharingRatio;
+    @Column(name = "ontology_harbinger")
+    private Integer ontologyHarbinger;
+    @Column(name = "old_node")
+    private Integer oldNode;
+    @Column(name = "contact_info_verified")
+    private Integer contactInfoVerified;
+
+
 }

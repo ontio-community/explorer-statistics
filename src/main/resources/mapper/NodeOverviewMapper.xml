@@ -14,4 +14,18 @@
         SET blk_cnt_to_nxt_rnd = #{blkCntToNxtRnd}
         WHERE id = 1;
     </select>
+
+    <select id="selectBlkCountToNxtRnd" resultType="java.lang.Long" useCache="true">
+        SELECT blk_cnt_to_nxt_rnd
+        FROM tbl_node_overview
+        WHERE id = 1;
+    </select>
+
+    <update id="updateLeftTimeToNxtRnd" parameterType="java.lang.Long">
+        UPDATE tbl_node_overview
+        SET left_time_to_next_rnd = #{leftTimeToNextRnd}
+        WHERE id = 1;
+    </update>
+
+
 </mapper>
