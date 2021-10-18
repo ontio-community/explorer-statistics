@@ -356,8 +356,14 @@ public class ConsensusNodeService {
         for (int i = 0; i < nodes.size(); i++) {
             NodeInfoOnChain node = nodes.get(i);
             node.setNodeRank(i + 1);
-            BigDecimal currentPos = new BigDecimal(node.getInitPos()).add(new BigDecimal(node.getTotalPos()));
-            BigDecimal targetPos = new BigDecimal(node.getInitPos()).add(new BigDecimal(node.getMaxAuthorize()));
+            Long maxAuthorize = node.getMaxAuthorize();
+            Long initPos = node.getInitPos();
+            long tenTimesInitPos = initPos * 10;
+            if (maxAuthorize > tenTimesInitPos) {
+                maxAuthorize = tenTimesInitPos;
+            }
+            BigDecimal currentPos = new BigDecimal(initPos).add(new BigDecimal(node.getTotalPos()));
+            BigDecimal targetPos = new BigDecimal(initPos).add(new BigDecimal(maxAuthorize));
             BigDecimal progress = currentPos.multiply(Constants.ONE_HUNDRED).divide(targetPos, 2, RoundingMode.DOWN);
             if (Constants.ONE_HUNDRED.compareTo(progress) < 0) {
                 progress = Constants.ONE_HUNDRED;
