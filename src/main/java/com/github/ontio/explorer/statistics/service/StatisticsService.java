@@ -167,7 +167,7 @@ public class StatisticsService {
 
     private BigDecimal getDailyOngSum() {
         BigDecimal dailyOngAmount = txDetailTmpMapper.selectOngAmountInOneDay();
-        return dailyOngAmount == null ? new BigDecimal(0) : dailyOngAmount.divide(Constants.ONG_TOTAL, 9, RoundingMode.HALF_DOWN);
+        return dailyOngAmount == null ? new BigDecimal(0) : dailyOngAmount;
     }
 
     private BigDecimal getDailyOntSum(String contractHash) {
@@ -182,13 +182,13 @@ public class StatisticsService {
 
     private BigDecimal getOneDayOngSum(String contractHash) {
         BigDecimal ongCount = txDetailTmpMapper.selectContractAssetAmount(contractHash, Constants.ONG);
-        return ongCount == null ? new BigDecimal(0) : ongCount.divide(Constants.ONG_TOTAL, 9, RoundingMode.HALF_DOWN);
+        return ongCount == null ? new BigDecimal(0) : ongCount;
     }
 
 
     private BigDecimal getDailyOngSum(String contractHash) {
         BigDecimal ongCount = txDetailDailyMapper.selectContractAssetAmount(contractHash, Constants.ONG);
-        return ongCount == null ? new BigDecimal(0) : ongCount.divide(Constants.ONG_TOTAL, 9, RoundingMode.HALF_DOWN);
+        return ongCount == null ? new BigDecimal(0) : ongCount;
     }
 
     private int getDailyTxSum(String contractHash) {

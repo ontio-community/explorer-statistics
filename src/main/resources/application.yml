@@ -42,10 +42,10 @@ server:
 
 config:
   hosts:
-    - http://dappnode1.ont.io:20334
-    - http://dappnode2.ont.io:20334
-    - http://dappnode3.ont.io:20334
-    - http://dappnode4.ont.io:20334
+    - http://172.168.3.73:20334
+    - http://172.168.3.73:20334
+    - http://172.168.3.73:20334
+    - http://172.168.3.73:20334
   consensus-node-detail-url: https://explorer.ont.io/nodes/detail/
   node-map-url: http://52.77.140.175:8888/api/nodes
   is-test-net: false
@@ -81,3 +81,7 @@ node-schedule-task:
   update-cycle-time: 30000
   update-round-left-time: 300000
   update-stable-node: 3600000
+
+logging:
+  level:
+    com.github.ontio.explorer.statistics.mapper: debug
