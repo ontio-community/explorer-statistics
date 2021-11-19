@@ -51,55 +51,60 @@ public class OntSdkService {
         }
     }
 
-    GovernanceView getGovernanceView() {
+    GovernanceView getGovernanceView() throws Exception {
         try {
             return sdk.nativevm().governance().getGovernanceView();
         } catch (ConnectorException | IOException | SDKException e) {
             log.warn("Getting governance view failed: {}", e.getMessage());
             switchSyncNode();
-            log.info("Getting governance view again");
-            return getGovernanceView();
+//            log.info("Getting governance view again");
+//            return getGovernanceView();
+            throw e;
         }
     }
 
-    int getStakingChangeCount() {
+    int getStakingChangeCount() throws Exception {
         try {
             Configuration configuration = sdk.nativevm().governance().getConfiguration();
             if (configuration == null) {
                 log.warn("Getting native vm configuration failed: configuration is null");
                 switchSyncNode();
-                log.info("Try to get native vm configuration again");
-                return getStakingChangeCount();
+//                log.info("Try to get native vm configuration again");
+//                return getStakingChangeCount();
+
             }
             return configuration.MaxBlockChangeView;
         } catch (ConnectorException | IOException e) {
             log.warn("Getting native vm configuration failed: {}", e.getMessage());
             switchSyncNode();
-            log.info("Getting native vm configuration again");
-            return getStakingChangeCount();
+//            log.info("Getting native vm configuration again");
+//            return getStakingChangeCount();
+            throw e;
         }
     }
 
-    int getBlockHeight() {
+    int getBlockHeight() throws Exception{
         try {
             return sdk.getRestful().getBlockHeight();
         } catch (ConnectorException | IOException | SDKException e) {
             log.warn("Getting block height failed: {}", e.getMessage());
             switchSyncNode();
-            log.info("Getting block height again");
-            return getBlockHeight();
+//            log.info("Getting block height again");
+//            return getBlockHeight();
+            throw e;
         }
     }
 
-    int getBlockTimeByHeight(int height) {
+    int getBlockTimeByHeight(int height) throws Exception {
         try {
             Block block = sdk.getRestful().getBlock(height);
             return block.timestamp;
         } catch (ConnectorException | IOException | SDKException e) {
             log.warn("Getting block height failed: {}", e.getMessage());
             switchSyncNode();
-            log.info("Getting block height again");
-            return getBlockTimeByHeight(height);
+//            log.info("Getting block height again");
+//            return getBlockTimeByHeight(height);
+            throw e;
         }
     }
 
@@ -115,15 +120,16 @@ public class OntSdkService {
         }
     }
 
-    public String getAuthorizeInfo(String publicKey, String address) {
+    public String getAuthorizeInfo(String publicKey, String address) throws Exception {
         try {
             Address addr = Address.decodeBase58(address);
             return sdk.nativevm().governance().getAuthorizeInfo(publicKey, addr);
         } catch (SDKException e) {
             log.warn("Getting authorize info failed: {}", e.getMessage());
             switchSyncNode();
-            log.info("Getting authorize info again");
-            return getAuthorizeInfo(publicKey, address);
+//            log.info("Getting authorize info again");
+//            return getAuthorizeInfo(publicKey, address);
+            throw e;
         }
     }
 
@@ -146,21 +152,22 @@ public class OntSdkService {
         return peerInfo;
     }
 
-    public int getPreConsensusCount() {
+    public int getPreConsensusCount() throws Exception {
         try {
             Configuration preConfiguration = getPreConfiguration();
             return preConfiguration.K;
         } catch (Exception e) {
             log.warn("Getting authorize info failed: {}", e.getMessage());
             switchSyncNode();
-            log.info("Getting authorize info again");
-            return getPreConsensusCount();
+//            log.info("Getting authorize info again");
+//            return getPreConsensusCount();
+            throw e;
         }
     }
 
     public Configuration getPreConfiguration() throws Exception {
         String res = sdk.getConnect().getStorage(Helper.reverse(contractAddress), Helper.toHexString("preConfig".getBytes()));
-        if(res == null){
+        if (res == null) {
             return null;
         }
         Configuration configuration = new Configuration();

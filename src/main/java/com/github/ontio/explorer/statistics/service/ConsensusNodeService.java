@@ -112,7 +112,7 @@ public class ConsensusNodeService {
         this.blockMapper = blockMapper;
     }
 
-    public void updateBlockCountToNextRound() {
+    public void updateBlockCountToNextRound() throws Exception {
         long blockCntToNxtRound = getBlockCountToNextRound();
         if (blockCntToNxtRound < 0) {
             return;
@@ -132,7 +132,7 @@ public class ConsensusNodeService {
         updateBlkRndHistory(roundStartBlock, stakingChangeCount);
     }
 
-    private void updateBlkRndHistory(long roundStartBlock, int stakingChangeCount) {
+    private void updateBlkRndHistory(long roundStartBlock, int stakingChangeCount) throws Exception {
         List<NodeOverviewHistory> historyList = nodeOverviewHistoryMapper.checkHistoryExist();
         int size = historyList.size();
         if (size < 10) {
@@ -157,7 +157,7 @@ public class ConsensusNodeService {
         }
     }
 
-    private void maintainBlkRndHistory(int size, long maintainEndBlk, int stakingChangeCount) {
+    private void maintainBlkRndHistory(int size, long maintainEndBlk, int stakingChangeCount) throws Exception {
         int loop = 10 - size;
         int currentCycle = ontSdkService.getGovernanceView().view;
         for (int i = 0; i < loop; i++) {
@@ -223,7 +223,7 @@ public class ConsensusNodeService {
         }
     }
 
-    public void updateNodeRankHistory() {
+    public void updateNodeRankHistory() throws Exception {
         long currentRoundBlockHeight;
         try {
             currentRoundBlockHeight = nodeRankHistoryMapper.selectCurrentRoundBlockHeight();
@@ -244,7 +244,7 @@ public class ConsensusNodeService {
         }
     }
 
-    private void initNodeRankHistory() {
+    private void initNodeRankHistory() throws Exception {
         GovernanceView view = ontSdkService.getGovernanceView();
         if (view == null) {
             log.warn("Getting governance view in consensus node service failed:");
@@ -269,7 +269,7 @@ public class ConsensusNodeService {
         }
     }
 
-    private long getBlockCountToNextRound() {
+    private long getBlockCountToNextRound() throws Exception {
         GovernanceView view = ontSdkService.getGovernanceView();
         if (view == null) {
             log.warn("Getting governance view in consensus node service failed:");
@@ -279,7 +279,7 @@ public class ConsensusNodeService {
         return paramsConfig.getMaxStakingChangeCount() - (blockHeight - view.height);
     }
 
-    private long getRoundStartBlock() {
+    private long getRoundStartBlock() throws Exception {
         GovernanceView view = ontSdkService.getGovernanceView();
         if (view == null) {
             log.warn("Getting governance view in consensus node service failed:");
@@ -288,7 +288,7 @@ public class ConsensusNodeService {
         return view.height;
     }
 
-    public void updateConsensusNodeInfo() {
+    public void updateConsensusNodeInfo() throws Exception {
         Map peerPool = getPeerPool();
         List<NodeInfoOnChain> nodes = getNodesWithAttributes(peerPool);
         nodes.sort((v1, v2) -> Long.compare(v2.getInitPos() + v2.getTotalPos(), v1.getInitPos() + v1.getTotalPos()));
@@ -297,17 +297,18 @@ public class ConsensusNodeService {
         updateNodesTable(nodes);
     }
 
-    private Map getPeerPool() {
+    private Map getPeerPool() throws Exception {
         try {
             return ontSdkService.getSdk().nativevm().governance().getPeerPoolMap();
         } catch (Exception e) {
             log.error("Get peer pool map failed: {}", e.getMessage());
             ontSdkService.switchSyncNode();
-            return getPeerPool();
+//            return getPeerPool();
+            throw e;
         }
     }
 
-    private List<NodeInfoOnChain> getNodesWithAttributes(Map peerPool) {
+    private List<NodeInfoOnChain> getNodesWithAttributes(Map peerPool) throws Exception {
         List<NodeInfoOnChain> nodes = new ArrayList<>();
         for (Object obj : peerPool.values()) {
             PeerPoolItem item = (PeerPoolItem) obj;
@@ -339,7 +340,7 @@ public class ConsensusNodeService {
     }
 
 
-    private HashMap<String, Object> getAttributes(String pubKey) {
+    private HashMap<String, Object> getAttributes(String pubKey) throws Exception {
         TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
         };
         try {
@@ -348,7 +349,8 @@ public class ConsensusNodeService {
         } catch (Exception e) {
             log.error("Getting {}'s peer attributes failed: {}", pubKey, e.getMessage());
             ontSdkService.switchSyncNode();
-            return getAttributes(pubKey);
+//            return getAttributes(pubKey);
+            throw e;
         }
     }
 
@@ -725,7 +727,7 @@ public class ConsensusNodeService {
         return new BigDecimal(totalStake);
     }
 
-    private Integer getRoundStartView() {
+    private Integer getRoundStartView() throws Exception {
         GovernanceView view = ontSdkService.getGovernanceView();
         if (view == null) {
             log.warn("Getting governance view in consensus node service failed:");
@@ -750,7 +752,7 @@ public class ConsensusNodeService {
     }
 
 
-    private void initNodeCycle() {
+    private void initNodeCycle() throws Exception {
         Map peerPool = getPeerPool();
         List<NodeInfoOnChain> nodes = filterNodes(peerPool);
         List<NodeCycle> nodeCycleList = new ArrayList<>();
@@ -772,7 +774,12 @@ public class ConsensusNodeService {
             } else {
                 nodeCycle.setStatus(3);
             }
-            HashMap<String, Object> attribute = getAttributes(publicKey);
+            HashMap<String, Object> attribute = null;
+            try {
+                attribute = getAttributes(publicKey);
+            } catch (Exception e) {
+                log.error("getAttributes error:{}",e.getMessage());
+            }
             int maxAuthorize = Integer.parseInt(attribute.get("maxAuthorize").toString());
             nodeCycle.setNodeProportionT((100 - (int) attribute.get("tPeerCost") + "%"));
             nodeCycle.setNodeProportionT2((100 - (int) attribute.get("t2PeerCost") + "%"));
@@ -783,7 +790,11 @@ public class ConsensusNodeService {
             nodeCycle.setBonusOng(BigDecimal.valueOf(0));
             nodeCycle.setNodeStakeONT(item.getInitPos().intValue());
             nodeCycle.setUserStakeONT(item.getTotalPos().intValue());
-            nodeCycle.setCycle(getRoundStartView());
+            try {
+                nodeCycle.setCycle(getRoundStartView());
+            } catch (Exception e) {
+                log.error("getRoundStartView error:{}",e.getMessage());
+            }
             nodeCycleList.add(nodeCycle);
         });
         nodeCycleMapper.batchSave(nodeCycleList);
@@ -857,7 +868,12 @@ public class ConsensusNodeService {
                     nodeCycle.setStatus(3);
                 }
             }
-            HashMap<String, Object> attribute = getAttributes(publicKey);
+            HashMap<String, Object> attribute = null;
+            try {
+                attribute = getAttributes(publicKey);
+            } catch (Exception e) {
+                log.error("getAttributes error:{}",e.getMessage());
+            }
             int maxAuthorize = Integer.parseInt(attribute.get("maxAuthorize").toString());
             // 本周期的数据存放
             nodeCycle.setNodeProportionT((100 - (int) attribute.get("tPeerCost") + "%"));
@@ -887,7 +903,7 @@ public class ConsensusNodeService {
     }
 
 
-    private Map<String, BigDecimal> nodeCycleYield(List<NodeCycle> nodeCycleList) throws ConnectorException, IOException {
+    private Map<String, BigDecimal> nodeCycleYield(List<NodeCycle> nodeCycleList) throws Exception {
         HashMap<String, BigDecimal> mapOfInspire = new HashMap<>();
         Integer cycleNum = nodeCycleList.get(0).getCycle();
         NodeOverviewHistory nodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(cycleNum);
