@@ -96,7 +96,8 @@ public class AggregateSourceProducer {
         }
         int blockHeight = this.startBlockHeight;
         int currentBlockHeight = blockHeight;
-        log.info("productTransactionInfoByBlockHeight latestBlockHeight:{}");
+        log.info("productTransactionInfoByBlockHeight this.startBlockHeight:{}", this.startBlockHeight);
+        log.info("productTransactionInfoByBlockHeight latestBlockHeight:{}", latestBlockHeight);
         try {
             while (blockHeight < latestBlockHeight) {
                 Example example = new Example(TxDetail.class);
@@ -124,6 +125,7 @@ public class AggregateSourceProducer {
                     dispatcher.dispatch(transactionInfo);
                     blockHeight = detail.getBlockHeight();
                     currentBlockHeight = detail.getBlockHeight();
+                    log.info("for (TxDetail detail : details) currentBlockHeight:{}", currentBlockHeight);
                 }
             }
         } finally {
@@ -204,6 +206,7 @@ public class AggregateSourceProducer {
 
         // reset the start block height
         startBlockHeight = currentMapper.findLastStatBlockHeight();
+        log.info("reSync startBlockHeight:{}", startBlockHeight);
 
         int beginBlockHeight = Math.max(fromBlock - 1, contract.getReSyncStatBlock());
         int endBlockHeight = Math.min(toBlock, startBlockHeight);
