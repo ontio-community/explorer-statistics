@@ -125,7 +125,6 @@ public class AggregateSourceProducer {
                     dispatcher.dispatch(transactionInfo);
                     blockHeight = detail.getBlockHeight();
                     currentBlockHeight = detail.getBlockHeight();
-                    log.info("for (TxDetail detail : details) currentBlockHeight:{}", currentBlockHeight);
                 }
             }
         } finally {
