@@ -96,8 +96,6 @@ public class AggregateSourceProducer {
         }
         int blockHeight = this.startBlockHeight;
         int currentBlockHeight = blockHeight;
-        log.info("productTransactionInfoByBlockHeight this.startBlockHeight:{}", this.startBlockHeight);
-        log.info("productTransactionInfoByBlockHeight latestBlockHeight:{}", latestBlockHeight);
         try {
             while (blockHeight < latestBlockHeight) {
                 Example example = new Example(TxDetail.class);

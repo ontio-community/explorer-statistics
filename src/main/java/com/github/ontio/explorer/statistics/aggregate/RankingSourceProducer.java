@@ -58,7 +58,7 @@ public class RankingSourceProducer {
 			while (beginBlockHeight < endBlockHeight) {
 				Example example = new Example(TxDetail.class);
 				example.and()
-						.andGreaterThanOrEqualTo("blockHeight", beginBlockHeight)
+						.andGreaterThan("blockHeight", beginBlockHeight)
 						.andLessThanOrEqualTo("blockHeight", Math.min(beginBlockHeight + BLOCK_BATCH_SIZE, endBlockHeight))
 						.andIn("eventType", Arrays.asList(2, 3));
 				example.orderBy("blockHeight").orderBy("blockIndex").orderBy("txIndex");
