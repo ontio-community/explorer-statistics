@@ -47,7 +47,7 @@ public class ConfigService {
         return config == null ? "" : config.getValue();
     }
 
-    public String updateMaxStakingChangeCount() throws Exception {
+    public String updateMaxStakingChangeCount() {
         int maxStakingChangeCount = ontSdkService.getStakingChangeCount();
         Config config = new Config(ParamsConfig.Field.maxStakingChangeCount, String.valueOf(maxStakingChangeCount));
         Config selectConfig = configMapper.selectByPrimaryKey(ParamsConfig.Field.maxStakingChangeCount);

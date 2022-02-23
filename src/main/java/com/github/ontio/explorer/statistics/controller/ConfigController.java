@@ -31,7 +31,7 @@ public class ConfigController {
 
     @ApiOperation(value = "Update max staking change count from Blockchain")
     @PutMapping(value = "/max-staking-change-count")
-    public Response refreshBlockCountInStakingRound() throws Exception {
+    public Response refreshBlockCountInStakingRound() {
         String count = configService.updateMaxStakingChangeCount();
         if (count == null || count.length() == 0) {
             return new Response(Result.INTERNAL_SERVER_ERROR);
