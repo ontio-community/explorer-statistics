@@ -1,6 +1,5 @@
 package com.github.ontio.explorer.statistics.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.github.ontio.OntSdk;
 import com.github.ontio.account.Account;
 import com.github.ontio.common.Address;
@@ -160,7 +159,7 @@ public class OntSdkService {
 
     public Configuration getPreConfiguration() throws Exception {
         String res = sdk.getConnect().getStorage(Helper.reverse(contractAddress), Helper.toHexString("preConfig".getBytes()));
-        if(res == null){
+        if (res == null) {
             return null;
         }
         Configuration configuration = new Configuration();

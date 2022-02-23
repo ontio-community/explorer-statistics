@@ -34,7 +34,8 @@ public class DailyInfoSchedule {
         this.statisticsService = statisticsService;
     }
 
-    @Scheduled(cron = "0 5 0 * * *")
+    //    @Scheduled(cron = "0 5 0 * * *")
+    @Scheduled(initialDelay = 10 * 1000, fixedDelay = 5 * 60 * 1000)
     public void updateDailyInfo() {
         log.info("Updating daily information task begin");
         statisticsService.updateDailySummary();

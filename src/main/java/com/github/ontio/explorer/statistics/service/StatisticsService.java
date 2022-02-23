@@ -16,8 +16,8 @@
 package com.github.ontio.explorer.statistics.service;
 
 import com.alibaba.fastjson.JSON;
-import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.common.Constants;
+import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.mapper.*;
 import com.github.ontio.explorer.statistics.model.*;
 import lombok.NoArgsConstructor;
@@ -27,8 +27,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @NoArgsConstructor
@@ -167,7 +169,7 @@ public class StatisticsService {
 
     private BigDecimal getDailyOngSum() {
         BigDecimal dailyOngAmount = txDetailTmpMapper.selectOngAmountInOneDay();
-        return dailyOngAmount == null ? new BigDecimal(0) : dailyOngAmount.divide(Constants.ONG_TOTAL, 9, RoundingMode.HALF_DOWN);
+        return dailyOngAmount == null ? new BigDecimal(0) : dailyOngAmount;
     }
 
     private BigDecimal getDailyOntSum(String contractHash) {
@@ -182,13 +184,13 @@ public class StatisticsService {
 
     private BigDecimal getOneDayOngSum(String contractHash) {
         BigDecimal ongCount = txDetailTmpMapper.selectContractAssetAmount(contractHash, Constants.ONG);
-        return ongCount == null ? new BigDecimal(0) : ongCount.divide(Constants.ONG_TOTAL, 9, RoundingMode.HALF_DOWN);
+        return ongCount == null ? new BigDecimal(0) : ongCount;
     }
 
 
     private BigDecimal getDailyOngSum(String contractHash) {
         BigDecimal ongCount = txDetailDailyMapper.selectContractAssetAmount(contractHash, Constants.ONG);
-        return ongCount == null ? new BigDecimal(0) : ongCount.divide(Constants.ONG_TOTAL, 9, RoundingMode.HALF_DOWN);
+        return ongCount == null ? new BigDecimal(0) : ongCount;
     }
 
     private int getDailyTxSum(String contractHash) {
