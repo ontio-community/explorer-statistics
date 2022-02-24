@@ -75,8 +75,7 @@
 
 
     <select id="findFeeAmountOneCycle" resultType="java.math.BigDecimal">
-        SELECT
-        SUM( fee )
+        SELECT IFNULL(SUM(fee), 0)
         FROM
         ( SELECT tx_hash, fee
         FROM tbl_tx_detail
