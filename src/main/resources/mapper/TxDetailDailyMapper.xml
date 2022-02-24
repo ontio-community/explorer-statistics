@@ -84,11 +84,9 @@
         SELECT SUM(amount) as amount, asset_name
         from tbl_tx_detail_daily
         where confirm_flag = 1
-        and called_contract_hash = #{contractHash}
+        and contract_hash = #{contractHash}
         and event_type = 3
-        <if test="oep5 == null">
-            GROUP BY asset_name
-        </if>
+        GROUP BY asset_name
     </select>
 
 </mapper>

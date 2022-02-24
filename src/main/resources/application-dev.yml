@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/explorer_v2?serverTimezone=UTC&allowMultiQueries=true
+    url: jdbc:mysql://localhost:3306/explorer?serverTimezone=UTC&allowMultiQueries=true&useSSL=false&characterEncoding=UTF-8
     username: root
     password:
     initialization-mode: always

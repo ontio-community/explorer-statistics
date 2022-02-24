@@ -249,21 +249,9 @@ public class StatisticsService {
     }
 
     private String getOepTokenSum(String contractHash, String type) {
-        List<Map> oepTokenSum;
         Map<String, Object> paramMap = new HashMap<>();
         paramMap.put("contractHash", contractHash);
-        if (type.equalsIgnoreCase("oep5") || type.equalsIgnoreCase("orc721")) {
-            paramMap.put("oep5", "oep5");
-            oepTokenSum = txDetailDailyMapper.selectContractTokenAllSum(paramMap);
-            if (!isEmptyOrNull(oepTokenSum) && oepTokenSum.size() != 0) {
-                Map oep8Map = oepTokenSum.get(0);
-                if (!isEmptyOrNull(oep8Map)) {
-                    oep8Map.put("asset_name", ((String) oep8Map.get("asset_name")).split(":")[0]);
-                }
-            }
-        } else {
-            oepTokenSum = txDetailDailyMapper.selectContractTokenAllSum(paramMap);
-        }
+        List<Map> oepTokenSum = txDetailDailyMapper.selectContractTokenAllSum(paramMap);
         oepTokenSum = oepTokenSum == null ? new ArrayList<>() : oepTokenSum;
         return JSON.toJSONString(oepTokenSum);
     }
