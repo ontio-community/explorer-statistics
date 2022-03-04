@@ -44,5 +44,5 @@ public interface TxDetailTmpMapper extends Mapper<TxDetailTmp> {
 
     List<String> selectContractAddr4Dapp(@Param("contractHash") String contractHash);
 
-    List<String> selectContractAddr(@Param("contractHash") String contractHash);
+    List<String> selectContractAddr(@Param("contractHash") String contractHash, @Param("eventType") Integer eventType);
 }

@@ -226,24 +226,26 @@ public class StatisticsService {
         return txDetailDailyMapper.selectContractAddr4Dapp(contractHash);
     }
 
-    private List<String> getAddrListFromTxDetailTbl(String contractHash) {
-        return txDetailDailyMapper.selectContractAddr(contractHash);
+    private List<String> getAddrListFromTxDetailTbl(String contractHash, Integer eventType) {
+        return txDetailDailyMapper.selectContractAddr(contractHash, eventType);
     }
 
     private List<String> getAddrListFromAddrDailySumTbl(String contractHash) {
         return addrDailySummaryMapper.selectDistinctAddressByContract(contractHash);
     }
 
-    private int getDailyContractNewAddrCount(String contractHash, int dappStoreFlag) {
+    private int getDailyContractNewAddrCount(String contractHash, int dappStoreFlag, Integer eventType) {
         List<String> contractAddrList = new ArrayList<>();
         //dapp类型合约,根据from_address+payer计算地址
         if (dappStoreFlag == 1) {
             contractAddrList = getAddrListFromTxDetailTbl4Dapp(contractHash);
         } else {
             //其他类型合约,根据from_address+to_address计算地址
-            contractAddrList = getAddrListFromTxDetailTbl(contractHash);
+            contractAddrList = getAddrListFromTxDetailTbl(contractHash, eventType);
         }
         List<String> fullAddrList = getAddrListFromAddrDailySumTbl(contractHash);
+        // 去除00地址和07地址
+        contractAddrList.removeAll(Constants.EXCLUDE_ADDRESS_LIST);
         contractAddrList.removeAll(fullAddrList);
         return contractAddrList.size();
     }
@@ -267,13 +269,18 @@ public class StatisticsService {
             String contractHash = contract.getContractHash();
             int dappStoreFlag = contract.getDappstoreFlag();
             log.info("Staring handle {} contract {} named {} which dApp store flag is {}", type, contractHash, contract.getName(), dappStoreFlag);
+            Integer eventType = null;
+            if (Constants.TOKEN_TYPES.contains(type.toLowerCase())) {
+                // token合约计算持币地址数根据transfer事件统计
+                eventType = 3;
+            }
 
             ContractDailySummary contractDailySummary = getContractDailySummary(contractHash);
             contract.setTxCount(contractDailySummary.getTxCount() + getDailyTxCount(contractHash));
             contract.setOntSum(contractDailySummary.getOntSum().add(getDailyOntSum(contractHash)));
             contract.setOngSum(contractDailySummary.getOngSum().add(getDailyOngSum(contractHash)));
             contract.setTokenSum(getOepTokenSum(contractHash, type));
-            contract.setAddressCount(contractDailySummary.getNewAddressCount() + getDailyContractNewAddrCount(contractHash, dappStoreFlag));
+            contract.setAddressCount(contractDailySummary.getNewAddressCount() + getDailyContractNewAddrCount(contractHash, dappStoreFlag, eventType));
             contractMapper.updateByPrimaryKeySelective(contract);
         }
     }
@@ -316,11 +323,18 @@ public class StatisticsService {
                 dailyActiveAddress = txDetailTmpMapper.selectContractAddr4Dapp(contractHash);
             } else {
                 //其他类型合约,根据from_address+to_address计算地址
-                dailyActiveAddress = txDetailTmpMapper.selectContractAddr(contractHash);
+                String type = contract.getType();
+                Integer eventType = null;
+                if (Constants.TOKEN_TYPES.contains(type.toLowerCase())) {
+                    // token合约计算持币地址数根据transfer事件统计
+                    eventType = 3;
+                }
+                dailyActiveAddress = txDetailTmpMapper.selectContractAddr(contractHash, eventType);
             }
             int dailyActiveAddrCount = dailyActiveAddress.size();
 
             List<String> allAddrList = addrDailySummaryMapper.selectDistinctAddressByContract(contractHash);
+            dailyActiveAddress.removeAll(Constants.EXCLUDE_ADDRESS_LIST);
             dailyActiveAddress.removeAll(allAddrList);
             int dailyNewAddrCount = dailyActiveAddress.size();
 
@@ -357,6 +371,7 @@ public class StatisticsService {
         map.put("dailyActiveAddrCount", dailyAddrRecords.size());
 
         List<String> addressRecords = addrDailySummaryMapper.selectDistinctAddressByContract(Constants.ADDR_DAILY_SUMMARY_NATIVETYPE);
+        dailyAddrRecords.removeAll(Constants.EXCLUDE_ADDRESS_LIST);
         dailyAddrRecords.removeAll(addressRecords);
 
         map.put("dailyNewAddrCount", dailyAddrRecords.size());

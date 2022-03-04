@@ -16,6 +16,8 @@
 package com.github.ontio.explorer.statistics.common;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 
 public class Constants {
     public static final int GENESIS_TIME = 1530316800;
@@ -37,4 +39,9 @@ public class Constants {
     public static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
 
     public static final BigDecimal RECENT_BLOCK_VELOCITY = new BigDecimal(2500);
+
+    public static final List<String> TOKEN_TYPES = Arrays.asList("oep4", "oep5", "oep8", "orc20", "orc721", "orc1155");
+
+    // 地址数量统计排除00地址和07地址
+    public static final List<String> EXCLUDE_ADDRESS_LIST = Arrays.asList("00", "AFmseVrdL9f9oyCzZefL9tG6UbvhPbdYzM", "0x0000000000000000000000000000000000000000", "AFmseVrdL9f9oyCzZefL9tG6UbviEH9ugK", "0x0000000000000000000000000000000000000007");
 }
