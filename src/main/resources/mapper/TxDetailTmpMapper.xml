@@ -95,11 +95,17 @@
                 FROM tbl_tx_detail_tmp
                 WHERE called_contract_hash = #{contractHash}
                 AND confirm_flag = 1
+                <if test="eventType != null">
+                    AND event_type = #{eventType}
+                </if>
             UNION
                 SELECT DISTINCT(to_address) as address
                 FROM tbl_tx_detail_tmp
                 WHERE called_contract_hash = #{contractHash}
                 AND confirm_flag = 1
+                <if test="eventType != null">
+                    AND event_type = #{eventType}
+                </if>
         ) t
     </select>
 
