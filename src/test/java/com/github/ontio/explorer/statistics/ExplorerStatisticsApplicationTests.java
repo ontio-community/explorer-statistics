@@ -1,10 +1,11 @@
 package com.github.ontio.explorer.statistics;
 
+import com.alibaba.fastjson.JSON;
+import com.github.ontio.explorer.statistics.aggregate.model.AddressAggregate;
 import com.github.ontio.explorer.statistics.model.NodeInfoOnChain;
 import com.github.ontio.explorer.statistics.service.ConsensusNodeService;
-import com.github.ontio.explorer.statistics.task.NodeSchedule;
 import com.github.ontio.explorer.statistics.task.DailyInfoSchedule;
-import org.junit.Ignore;
+import com.github.ontio.explorer.statistics.task.NodeSchedule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +70,14 @@ public class ExplorerStatisticsApplicationTests {
     @Test
     public void testUpdateNodeOverviewHistory() {
 //        consensusNodeService.maintainBlkRndHistory(0, 8334300L, 60000);
+    }
+
+    @Test
+    public void newAddressAggregateKey() {
+        String address = "1";
+        String hash = "2";
+        AddressAggregate.AddressAggregateKey addressAggregateKey = new AddressAggregate.AddressAggregateKey(address, hash, false);
+        System.out.println(JSON.toJSONString(addressAggregateKey));
     }
 
 }

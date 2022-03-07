@@ -28,6 +28,10 @@ public class Constants {
 
     public static final String ONG = "ong";
 
+    public static final String ONG_CONTRACT_HASH = "0200000000000000000000000000000000000000";
+
+    public static final String EVM_PREFIX = "0x";
+
     public static final BigDecimal ZERO = new BigDecimal("0");
 
     public static final String ADDR_DAILY_SUMMARY_NATIVETYPE = "0000000000000000000000000000000000000000";
