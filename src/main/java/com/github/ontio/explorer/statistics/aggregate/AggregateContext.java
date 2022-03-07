@@ -48,6 +48,8 @@ public class AggregateContext {
      */
     public static final String GOVERNOR_ADDRESS = "AFmseVrdL9f9oyCzZefL9tG6UbviEH9ugK";
 
+    public static final String EVM_GOVERNOR_ADDRESS = "0x0000000000000000000000000000000000000007";
+
     private static final Collection<String> VIRTUAL_CONTRACTS;
 
     static {
@@ -127,7 +129,7 @@ public class AggregateContext {
     }
 
     public boolean isGovernor(String address) {
-        return GOVERNOR_ADDRESS.equals(address);
+        return GOVERNOR_ADDRESS.equals(address) || EVM_GOVERNOR_ADDRESS.equals(address);
     }
 
     public void beginReSync(ReSync.Begin begin) {
