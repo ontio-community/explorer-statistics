@@ -333,6 +333,9 @@ public class ConsensusNodeService {
             PeerPoolItem item = (PeerPoolItem) obj;
             NodeInfoOnChain node = new NodeInfoOnChain(item);
             String name = nodeInfoOffChainMapper.selectNameByPublicKey(item.peerPubkey);
+            if (name == null) {
+                name = "";
+            }
             node.setName(name);
             nodes.add(node);
         }
@@ -973,7 +976,10 @@ public class ConsensusNodeService {
     }
 
     public void updateStableNode() {
-        int currentCycle = nodeCycleMapper.selectMaxCycle();
+        Integer currentCycle = nodeCycleMapper.selectMaxCycle();
+        if (currentCycle == null) {
+            return;
+        }
         List<NodeCycle> nodeCycleListCurrent = nodeCycleMapper.selectCycleData(currentCycle);
         int beginCycle = currentCycle - 10;
         List<NodeCycle> nodeCycleListBegin = nodeCycleMapper.selectCycleData(beginCycle);

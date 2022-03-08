@@ -34,6 +34,10 @@ public class Constants {
 
     public static final BigDecimal ONG_DECIMAL = new BigDecimal("1000000000000000000");
 
+    public static final BigDecimal MAX_VALUE = new BigDecimal("99999999999999999999");
+
+    public static final BigDecimal MIN_VALUE = new BigDecimal("-99999999999999999999");
+
     public static final BigDecimal ZERO = new BigDecimal("0");
 
     public static final String ADDR_DAILY_SUMMARY_NATIVETYPE = "0000000000000000000000000000000000000000";

@@ -288,15 +288,47 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
         if (!changed || key().isForOep()) {
             return Optional.empty();
         }
+        if (Constants.MAX_VALUE.compareTo(balance) < 0) {
+            balance = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(balance) > 0) {
+            balance = Constants.MIN_VALUE;
+        }
+        BigDecimal maxBalance = balanceRanker.getMax();
+        BigDecimal minBalance = balanceRanker.getMin();
+        if (Constants.MAX_VALUE.compareTo(maxBalance) < 0) {
+            maxBalance = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(maxBalance) > 0) {
+            maxBalance = Constants.MIN_VALUE;
+        }
+        if (Constants.MAX_VALUE.compareTo(minBalance) < 0) {
+            minBalance = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(minBalance) > 0) {
+            minBalance = Constants.MIN_VALUE;
+        }
+        if (Constants.MAX_VALUE.compareTo(depositAmount) < 0) {
+            depositAmount = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(depositAmount) > 0) {
+            depositAmount = Constants.MIN_VALUE;
+        }
+        if (Constants.MAX_VALUE.compareTo(withdrawAmount) < 0) {
+            withdrawAmount = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(withdrawAmount) > 0) {
+            withdrawAmount = Constants.MIN_VALUE;
+        }
 
         AddressDailyAggregation snapshot = new AddressDailyAggregation();
         snapshot.setAddress(key().getAddress());
         snapshot.setTokenContractHash(key().getTokenContractHash());
         snapshot.setDateId(context.getDateId());
         snapshot.setBalance(balance);
-        snapshot.setUsdPrice(ZERO); // TODO 0 for now
-        snapshot.setMaxBalance(balanceRanker.getMax());
-        snapshot.setMinBalance(balanceRanker.getMin());
+        snapshot.setUsdPrice(ZERO);
+        snapshot.setMaxBalance(maxBalance);
+        snapshot.setMinBalance(minBalance);
         snapshot.setDepositTxCount(depositTxCount);
         snapshot.setWithdrawTxCount(withdrawTxCount);
         snapshot.setDepositAmount(depositAmount);
@@ -316,6 +348,38 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
         if (!total.changed) {
             return Optional.empty();
         }
+        if (Constants.MAX_VALUE.compareTo(total.balance) < 0) {
+            total.balance = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(total.balance) > 0) {
+            total.balance = Constants.MIN_VALUE;
+        }
+        BigDecimal maxBalance = total.balanceRanker.getMax();
+        BigDecimal minBalance = total.balanceRanker.getMin();
+        if (Constants.MAX_VALUE.compareTo(maxBalance) < 0) {
+            maxBalance = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(maxBalance) > 0) {
+            maxBalance = Constants.MIN_VALUE;
+        }
+        if (Constants.MAX_VALUE.compareTo(minBalance) < 0) {
+            minBalance = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(minBalance) > 0) {
+            minBalance = Constants.MIN_VALUE;
+        }
+        if (Constants.MAX_VALUE.compareTo(total.depositAmount) < 0) {
+            total.depositAmount = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(total.depositAmount) > 0) {
+            total.depositAmount = Constants.MIN_VALUE;
+        }
+        if (Constants.MAX_VALUE.compareTo(total.withdrawAmount) < 0) {
+            total.withdrawAmount = Constants.MAX_VALUE;
+        }
+        if (Constants.MIN_VALUE.compareTo(total.withdrawAmount) > 0) {
+            total.withdrawAmount = Constants.MIN_VALUE;
+        }
 
         AddressDailyAggregation snapshot = new AddressDailyAggregation();
         snapshot.setAddress(key().getAddress());
@@ -326,9 +390,9 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
             snapshot.setDateId(context.getConfig().getTotalAggregationDateId());
         }
         snapshot.setBalance(total.balance);
-        snapshot.setUsdPrice(ZERO); // TODO 0 for now
-        snapshot.setMaxBalance(total.balanceRanker.getMax());
-        snapshot.setMinBalance(total.balanceRanker.getMin());
+        snapshot.setUsdPrice(ZERO);
+        snapshot.setMaxBalance(maxBalance);
+        snapshot.setMinBalance(minBalance);
         snapshot.setDepositTxCount(total.depositTxCount);
         snapshot.setWithdrawTxCount(total.withdrawTxCount);
         snapshot.setDepositAmount(total.depositAmount);
