@@ -13,7 +13,7 @@ public interface NodeCycleMapper extends Mapper<NodeCycle> {
 
     int batchSave(@Param("nodeCycleList") List<NodeCycle> nodeCycleList);
 
-    int selectMaxCycle();
+    Integer selectMaxCycle();
 
     List<NodeCycle> selectCycleData(Integer cycle);
 

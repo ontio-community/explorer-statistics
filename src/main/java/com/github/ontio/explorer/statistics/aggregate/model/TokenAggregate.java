@@ -2,6 +2,7 @@ package com.github.ontio.explorer.statistics.aggregate.model;
 
 import com.github.ontio.explorer.statistics.aggregate.AggregateContext;
 import com.github.ontio.explorer.statistics.aggregate.support.UniqueCounter;
+import com.github.ontio.explorer.statistics.common.Constants;
 import com.github.ontio.explorer.statistics.model.TokenDailyAggregation;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -118,6 +119,12 @@ public class TokenAggregate extends AbstractAggregate<TokenAggregate.TokenAggreg
 		if (!changed) {
 			return Optional.empty();
 		}
+		if (Constants.MAX_VALUE.compareTo(txAmount) < 0) {
+			txAmount = Constants.MAX_VALUE;
+		}
+		if (Constants.MIN_VALUE.compareTo(txAmount) > 0) {
+			txAmount = Constants.MIN_VALUE;
+		}
 
 		TokenDailyAggregation snapshot = new TokenDailyAggregation();
 		snapshot.setTokenContractHash(key().getTokenContractHash());
@@ -136,6 +143,12 @@ public class TokenAggregate extends AbstractAggregate<TokenAggregate.TokenAggreg
 	protected Optional<TokenDailyAggregation> snapshotTotal() {
 		if (!total.changed) {
 			return Optional.empty();
+		}
+		if (Constants.MAX_VALUE.compareTo(total.txAmount) < 0) {
+			total.txAmount = Constants.MAX_VALUE;
+		}
+		if (Constants.MIN_VALUE.compareTo(total.txAmount) > 0) {
+			total.txAmount = Constants.MIN_VALUE;
 		}
 
 		TokenDailyAggregation snapshot = new TokenDailyAggregation();
