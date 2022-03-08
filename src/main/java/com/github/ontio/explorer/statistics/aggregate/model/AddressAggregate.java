@@ -1,15 +1,18 @@
 package com.github.ontio.explorer.statistics.aggregate.model;
 
+import com.github.ontio.OntSdk;
 import com.github.ontio.explorer.statistics.aggregate.AggregateContext;
 import com.github.ontio.explorer.statistics.aggregate.support.BigDecimalRanker;
 import com.github.ontio.explorer.statistics.aggregate.support.UniqueCounter;
 import com.github.ontio.explorer.statistics.common.Constants;
 import com.github.ontio.explorer.statistics.model.AddressDailyAggregation;
-import com.github.ontio.explorer.statistics.service.OntSdkService;
+import com.github.ontio.explorer.statistics.util.HttpUtil;
+import com.github.ontio.sdk.exception.SDKException;
 import lombok.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.Optional;
 
 import static java.math.BigDecimal.ZERO;
@@ -48,9 +51,6 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
     private transient boolean changed;
 
     private TotalAggregate total;
-
-    @Autowired
-    private OntSdkService ontSdkService;
 
     public AddressAggregate(AggregateContext context, AddressAggregateKey key) {
         super(context, key);
@@ -101,7 +101,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                 } else {
                     // ONG两个地址互通，balance需要实时查询
                     if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
-                        BigDecimal ongBalance = ontSdkService.getOngBalance(key().getAddress());
+                        BigDecimal ongBalance = getOngBalance(key().getAddress());
                         if (null == ongBalance) {
                             balance = balance.subtract(amount);
                             total.balance = total.balance.subtract(amount);
@@ -121,7 +121,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                 }
 
                 if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
-                    BigDecimal ongBalance = ontSdkService.getOngBalance(key().getAddress());
+                    BigDecimal ongBalance = getOngBalance(key().getAddress());
                     if (null == ongBalance) {
                         balance = balance.add(amount);
                         total.balance = total.balance.add(amount);
@@ -192,7 +192,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                     total.depositAmount = total.depositAmount.add(amount);
                 } else {
                     if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
-                        BigDecimal ongBalance = ontSdkService.getOngBalance(key().getAddress());
+                        BigDecimal ongBalance = getOngBalance(key().getAddress());
                         if (null == ongBalance) {
                             balance = balance.subtract(amount);
                             total.balance = total.balance.subtract(amount);
@@ -212,7 +212,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                 }
 
                 if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
-                    BigDecimal ongBalance = ontSdkService.getOngBalance(key().getAddress());
+                    BigDecimal ongBalance = getOngBalance(key().getAddress());
                     if (null == ongBalance) {
                         balance = balance.add(amount);
                         total.balance = total.balance.add(amount);
@@ -363,4 +363,21 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
         private transient boolean changed;
     }
 
+    public BigDecimal getOngBalance(String address) {
+        OntSdk sdk = OntSdk.getInstance();
+        try {
+            sdk.getRestful();
+        } catch (SDKException e) {
+            sdk.setRestful(context.getConfig().getHosts().get(0));
+        }
+        try {
+            if (address.startsWith(Constants.EVM_PREFIX)) {
+                address = HttpUtil.ethAddrToOntAddr(address);
+            }
+            BigInteger amount = sdk.nativevm().ongV2().queryBalanceOf(address);
+            return new BigDecimal(amount).divide(Constants.ONG_DECIMAL, 18, RoundingMode.DOWN).stripTrailingZeros();
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }
