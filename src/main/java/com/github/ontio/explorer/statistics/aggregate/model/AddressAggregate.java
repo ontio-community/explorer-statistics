@@ -5,8 +5,9 @@ import com.github.ontio.explorer.statistics.aggregate.support.BigDecimalRanker;
 import com.github.ontio.explorer.statistics.aggregate.support.UniqueCounter;
 import com.github.ontio.explorer.statistics.common.Constants;
 import com.github.ontio.explorer.statistics.model.AddressDailyAggregation;
-import com.github.ontio.explorer.statistics.util.HttpUtil;
+import com.github.ontio.explorer.statistics.service.OntSdkService;
 import lombok.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -48,6 +49,9 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
 
     private TotalAggregate total;
 
+    @Autowired
+    private OntSdkService ontSdkService;
+
     public AddressAggregate(AggregateContext context, AddressAggregateKey key) {
         super(context, key);
     }
@@ -56,18 +60,8 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
     protected void aggregateTransfer(TransactionInfo transactionInfo) {
         String from = transactionInfo.getFromAddress();
         String to = transactionInfo.getToAddress();
-        String contractHash = transactionInfo.getContractHash();
 
-        if (Constants.ONG_CONTRACT_HASH.equals(contractHash)) {
-            if (from.startsWith(Constants.EVM_PREFIX)) {
-                from = HttpUtil.ethAddrToOntAddr(from);
-            }
-            if (to.startsWith(Constants.EVM_PREFIX)) {
-                to = HttpUtil.ethAddrToOntAddr(to);
-            }
-        }
-
-        contractCounter.count(contractHash);
+        contractCounter.count(transactionInfo.getContractHash());
         if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForOep()) {
             if (from.equals(key().getAddress())) {
                 if (isTxHashChanged(transactionInfo)) {
@@ -105,8 +99,20 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                     depositAddressCounter.count(from);
                     total.depositAmount = total.depositAmount.add(amount);
                 } else {
-                    balance = balance.subtract(amount);
-                    total.balance = total.balance.subtract(amount);
+                    // ONG两个地址互通，balance需要实时查询
+                    if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
+                        BigDecimal ongBalance = ontSdkService.getOngBalance(key().getAddress());
+                        if (null == ongBalance) {
+                            balance = balance.subtract(amount);
+                            total.balance = total.balance.subtract(amount);
+                        } else {
+                            balance = ongBalance;
+                            total.balance = ongBalance;
+                        }
+                    } else {
+                        balance = balance.subtract(amount);
+                        total.balance = total.balance.subtract(amount);
+                    }
                 }
             } else if (to.equals(key().getAddress())) {
                 if (isTxHashChanged(transactionInfo)) {
@@ -114,12 +120,23 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                     total.depositTxCount++;
                 }
 
-                balance = balance.add(amount);
+                if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
+                    BigDecimal ongBalance = ontSdkService.getOngBalance(key().getAddress());
+                    if (null == ongBalance) {
+                        balance = balance.add(amount);
+                        total.balance = total.balance.add(amount);
+                    } else {
+                        balance = ongBalance;
+                        total.balance = ongBalance;
+                    }
+                } else {
+                    balance = balance.add(amount);
+                    total.balance = total.balance.add(amount);
+                }
+
                 depositAmount = depositAmount.add(amount);
                 depositAddressCounter.count(from);
                 txAddressCounter.count(from);
-
-                total.balance = total.balance.add(amount);
                 total.depositAmount = total.depositAmount.add(amount);
             }
             balanceRanker.rank(balance);
@@ -134,18 +151,8 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
         BigDecimal amount = transactionInfo.getAmount();
         String from = transactionInfo.getFromAddress();
         String to = transactionInfo.getToAddress();
-        String contractHash = transactionInfo.getContractHash();
 
-        if (Constants.ONG_CONTRACT_HASH.equals(contractHash)) {
-            if (from.startsWith(Constants.EVM_PREFIX)) {
-                from = HttpUtil.ethAddrToOntAddr(from);
-            }
-            if (to.startsWith(Constants.EVM_PREFIX)) {
-                to = HttpUtil.ethAddrToOntAddr(to);
-            }
-        }
-
-        contractCounter.count(contractHash);
+        contractCounter.count(transactionInfo.getContractHash());
         if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForOep()) {
             if (from.equals(key().getAddress())) {
                 if (isTxHashChanged(transactionInfo)) {
@@ -184,19 +191,43 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                     depositAddressCounter.count(from);
                     total.depositAmount = total.depositAmount.add(amount);
                 } else {
-                    balance = balance.subtract(amount);
-                    total.balance = total.balance.subtract(amount);
+                    if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
+                        BigDecimal ongBalance = ontSdkService.getOngBalance(key().getAddress());
+                        if (null == ongBalance) {
+                            balance = balance.subtract(amount);
+                            total.balance = total.balance.subtract(amount);
+                        } else {
+                            balance = ongBalance;
+                            total.balance = ongBalance;
+                        }
+                    } else {
+                        balance = balance.subtract(amount);
+                        total.balance = total.balance.subtract(amount);
+                    }
                 }
             } else if (to.equals(key().getAddress())) {
                 if (isTxHashChanged(transactionInfo)) {
                     depositTxCount++;
                     total.depositTxCount++;
                 }
-                balance = balance.add(amount);
+
+                if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
+                    BigDecimal ongBalance = ontSdkService.getOngBalance(key().getAddress());
+                    if (null == ongBalance) {
+                        balance = balance.add(amount);
+                        total.balance = total.balance.add(amount);
+                    } else {
+                        balance = ongBalance;
+                        total.balance = ongBalance;
+                    }
+                } else {
+                    balance = balance.add(amount);
+                    total.balance = total.balance.add(amount);
+                }
+
                 depositAmount = depositAmount.add(amount);
                 depositAddressCounter.count(from);
                 txAddressCounter.count(from);
-                total.balance = total.balance.add(amount);
                 total.depositAmount = total.depositAmount.add(amount);
             }
             balanceRanker.rank(balance);
@@ -256,15 +287,9 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
             return Optional.empty();
         }
 
-        String tokenContractHash = key().getTokenContractHash();
-        String address = key().getAddress();
-        if (Constants.ONG_CONTRACT_HASH.equals(tokenContractHash) && address.startsWith(Constants.EVM_PREFIX)) {
-            address = HttpUtil.ethAddrToOntAddr(address);
-        }
-
         AddressDailyAggregation snapshot = new AddressDailyAggregation();
-        snapshot.setAddress(address);
-        snapshot.setTokenContractHash(tokenContractHash);
+        snapshot.setAddress(key().getAddress());
+        snapshot.setTokenContractHash(key().getTokenContractHash());
         snapshot.setDateId(context.getDateId());
         snapshot.setBalance(balance);
         snapshot.setUsdPrice(ZERO); // TODO 0 for now
@@ -279,7 +304,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
         snapshot.setTxAddressCount(txAddressCounter.getCount());
         snapshot.setFeeAmount(feeAmount);
         snapshot.setContractCount(contractCounter.getCount());
-        snapshot.setIsVirtual(context.virtualContracts().contains(tokenContractHash));
+        snapshot.setIsVirtual(context.virtualContracts().contains(key().getTokenContractHash()));
         snapshot.setPreviousBalance(previousBalance);
         return Optional.of(snapshot);
     }
@@ -290,15 +315,9 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
             return Optional.empty();
         }
 
-        String tokenContractHash = key().getTokenContractHash();
-        String address = key().getAddress();
-        if (Constants.ONG_CONTRACT_HASH.equals(tokenContractHash) && address.startsWith(Constants.EVM_PREFIX)) {
-            address = HttpUtil.ethAddrToOntAddr(address);
-        }
-
         AddressDailyAggregation snapshot = new AddressDailyAggregation();
-        snapshot.setAddress(address);
-        snapshot.setTokenContractHash(tokenContractHash);
+        snapshot.setAddress(key().getAddress());
+        snapshot.setTokenContractHash(key().getTokenContractHash());
         if (key().isForOep()) {
             snapshot.setDateId(OEP_AGGREGATION_DATE_ID);
         } else {
@@ -317,7 +336,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
         snapshot.setTxAddressCount(0);
         snapshot.setFeeAmount(total.feeAmount);
         snapshot.setContractCount(0);
-        snapshot.setIsVirtual(context.virtualContracts().contains(tokenContractHash));
+        snapshot.setIsVirtual(context.virtualContracts().contains(key().getTokenContractHash()));
         snapshot.setPreviousBalance(previousBalance);
         return Optional.of(snapshot);
     }
@@ -325,11 +344,11 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
     @RequiredArgsConstructor
     @AllArgsConstructor
     @EqualsAndHashCode
-    @Data
+    @Getter
     @ToString
     public static class AddressAggregateKey implements AggregateKey {
-        private String address;
-        private String tokenContractHash;
+        private final String address;
+        private final String tokenContractHash;
         private boolean forOep;
     }
 

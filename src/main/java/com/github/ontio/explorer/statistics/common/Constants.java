@@ -32,6 +32,8 @@ public class Constants {
 
     public static final String EVM_PREFIX = "0x";
 
+    public static final BigDecimal ONG_DECIMAL = new BigDecimal("1000000000000000000");
+
     public static final BigDecimal ZERO = new BigDecimal("0");
 
     public static final String ADDR_DAILY_SUMMARY_NATIVETYPE = "0000000000000000000000000000000000000000";
