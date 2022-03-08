@@ -50,6 +50,8 @@ public class ParamsConfig {
 
     public int insteadZeroPos;
 
+    private int evmActiveBlock;
+
     public interface Field {
 
         String maxStakingChangeCount = "maxStakingChangeCount";

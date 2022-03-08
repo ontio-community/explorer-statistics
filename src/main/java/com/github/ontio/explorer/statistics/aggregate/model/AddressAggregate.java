@@ -60,6 +60,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
     protected void aggregateTransfer(TransactionInfo transactionInfo) {
         String from = transactionInfo.getFromAddress();
         String to = transactionInfo.getToAddress();
+        int blockHeight = transactionInfo.getBlockHeight();
 
         contractCounter.count(transactionInfo.getContractHash());
         if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForOep()) {
@@ -100,7 +101,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                     total.depositAmount = total.depositAmount.add(amount);
                 } else {
                     // ONG两个地址互通，balance需要实时查询
-                    if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
+                    if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash()) && blockHeight >= context.getConfig().getEvmActiveBlock()) {
                         BigDecimal ongBalance = getOngBalance(key().getAddress());
                         if (null == ongBalance) {
                             balance = balance.subtract(amount);
@@ -120,7 +121,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                     total.depositTxCount++;
                 }
 
-                if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
+                if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash()) && blockHeight >= context.getConfig().getEvmActiveBlock()) {
                     BigDecimal ongBalance = getOngBalance(key().getAddress());
                     if (null == ongBalance) {
                         balance = balance.add(amount);
@@ -151,6 +152,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
         BigDecimal amount = transactionInfo.getAmount();
         String from = transactionInfo.getFromAddress();
         String to = transactionInfo.getToAddress();
+        int blockHeight = transactionInfo.getBlockHeight();
 
         contractCounter.count(transactionInfo.getContractHash());
         if (context.virtualContracts().contains(key().getTokenContractHash()) || key().isForOep()) {
@@ -191,7 +193,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                     depositAddressCounter.count(from);
                     total.depositAmount = total.depositAmount.add(amount);
                 } else {
-                    if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
+                    if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash()) && blockHeight >= context.getConfig().getEvmActiveBlock()) {
                         BigDecimal ongBalance = getOngBalance(key().getAddress());
                         if (null == ongBalance) {
                             balance = balance.subtract(amount);
@@ -211,7 +213,7 @@ public class AddressAggregate extends AbstractAggregate<AddressAggregate.Address
                     total.depositTxCount++;
                 }
 
-                if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash())) {
+                if (Constants.ONG_CONTRACT_HASH.equals(key().getTokenContractHash()) && blockHeight >= context.getConfig().getEvmActiveBlock()) {
                     BigDecimal ongBalance = getOngBalance(key().getAddress());
                     if (null == ongBalance) {
                         balance = balance.add(amount);

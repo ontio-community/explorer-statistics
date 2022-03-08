@@ -7,9 +7,7 @@ import com.github.ontio.common.Helper;
 import com.github.ontio.core.block.Block;
 import com.github.ontio.core.governance.Configuration;
 import com.github.ontio.core.governance.GovernanceView;
-import com.github.ontio.explorer.statistics.common.Constants;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
-import com.github.ontio.explorer.statistics.util.HttpUtil;
 import com.github.ontio.io.BinaryReader;
 import com.github.ontio.network.exception.ConnectorException;
 import com.github.ontio.sdk.exception.SDKException;
@@ -21,9 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
@@ -172,18 +167,5 @@ public class OntSdkService {
         BinaryReader reader = new BinaryReader(in);
         configuration.deserialize(reader);
         return configuration;
-    }
-
-    public BigDecimal getOngBalance(String address) {
-        try {
-            if (address.startsWith(Constants.EVM_PREFIX)) {
-                address = HttpUtil.ethAddrToOntAddr(address);
-            }
-            BigInteger amount = sdk.nativevm().ongV2().queryBalanceOf(address);
-            return new BigDecimal(amount).divide(Constants.ONG_DECIMAL, 18, RoundingMode.DOWN).stripTrailingZeros();
-        } catch (Exception e) {
-            log.warn("getOngBalance failed: {}", e.getMessage());
-            return null;
-        }
     }
 }
