@@ -1,19 +1,8 @@
 package com.github.ontio.explorer.statistics.aggregate.service;
 
 import com.github.ontio.explorer.statistics.aggregate.AggregateContext;
-import com.github.ontio.explorer.statistics.aggregate.model.AddressAggregate;
-import com.github.ontio.explorer.statistics.aggregate.model.Aggregate;
-import com.github.ontio.explorer.statistics.aggregate.model.AggregateKey;
-import com.github.ontio.explorer.statistics.aggregate.model.AggregateSnapshot;
-import com.github.ontio.explorer.statistics.aggregate.model.ContractAggregate;
-import com.github.ontio.explorer.statistics.aggregate.model.ReSync;
-import com.github.ontio.explorer.statistics.aggregate.model.TokenAggregate;
-import com.github.ontio.explorer.statistics.aggregate.model.TotalAggregationSnapshot;
-import com.github.ontio.explorer.statistics.mapper.AddressDailyAggregationMapper;
-import com.github.ontio.explorer.statistics.mapper.ContractDailyAggregationMapper;
-import com.github.ontio.explorer.statistics.mapper.ContractMapper;
-import com.github.ontio.explorer.statistics.mapper.CurrentMapper;
-import com.github.ontio.explorer.statistics.mapper.TokenDailyAggregationMapper;
+import com.github.ontio.explorer.statistics.aggregate.model.*;
+import com.github.ontio.explorer.statistics.mapper.*;
 import com.github.ontio.explorer.statistics.model.AddressDailyAggregation;
 import com.github.ontio.explorer.statistics.model.Contract;
 import com.github.ontio.explorer.statistics.model.ContractDailyAggregation;
