@@ -270,10 +270,6 @@ public class StatisticsService {
             int dappStoreFlag = contract.getDappstoreFlag();
             log.info("Staring handle {} contract {} named {} which dApp store flag is {}", type, contractHash, contract.getName(), dappStoreFlag);
             Integer eventType = null;
-            if (Constants.TOKEN_TYPES.contains(type.toLowerCase())) {
-                // token合约计算持币地址数根据transfer事件统计
-                eventType = 3;
-            }
 
             ContractDailySummary contractDailySummary = getContractDailySummary(contractHash);
             contract.setTxCount(contractDailySummary.getTxCount() + getDailyTxCount(contractHash));
@@ -283,18 +279,6 @@ public class StatisticsService {
             contract.setAddressCount(contractDailySummary.getNewAddressCount() + getDailyContractNewAddrCount(contractHash, dappStoreFlag, eventType));
             contractMapper.updateByPrimaryKeySelective(contract);
         }
-    }
-
-    private static Boolean isEmptyOrNull(Object... params) {
-        if (params != null) {
-            for (Object val : params) {
-                if ("".equals(val) || val == null) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        return true;
     }
 
     private List<AddressDailySummary> updateDailyContractInfoAndContractNewAddress(Integer beginTime) {
@@ -323,12 +307,7 @@ public class StatisticsService {
                 dailyActiveAddress = txDetailTmpMapper.selectContractAddr4Dapp(contractHash);
             } else {
                 //其他类型合约,根据from_address+to_address计算地址
-                String type = contract.getType();
                 Integer eventType = null;
-                if (Constants.TOKEN_TYPES.contains(type.toLowerCase())) {
-                    // token合约计算持币地址数根据transfer事件统计
-                    eventType = 3;
-                }
                 dailyActiveAddress = txDetailTmpMapper.selectContractAddr(contractHash, eventType);
             }
             int dailyActiveAddrCount = dailyActiveAddress.size();
