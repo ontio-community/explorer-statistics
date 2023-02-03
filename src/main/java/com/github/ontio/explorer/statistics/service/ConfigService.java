@@ -140,7 +140,7 @@ public class ConfigService {
             return new Response(62006, "Verify signature failed.", "");
         }
         String nodeInfoStr = new String(payload, "UTF-8");
-        log.info("ledger nodeInfoStr:{}",nodeInfoStr);
+        log.info("ledger nodeInfoStr:{}", nodeInfoStr);
         NodeInfoOffChain nodeInfoOffChain = JSONObject.parseObject(nodeInfoStr, NodeInfoOffChain.class);
 
         String ontId = nodeInfoOffChain.getOntId();

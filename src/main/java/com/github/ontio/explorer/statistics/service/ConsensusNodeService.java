@@ -433,7 +433,7 @@ public class ConsensusNodeService {
         int preConsensusCount = ontSdkService.getPreConsensusCount();
         List<String> addressList = paramsConfig.getNodeFoundationAddress();
         List<String> nodeFoundationPublicKeys = paramsConfig.getNodeFoundationPublicKeys();
-        List<BigDecimal> fpFuList = new ArrayList<>();
+        Map<Integer, BigDecimal> fpFuList = new HashMap<>();
         List<NodeInfoOnChain> consensusNodes = new ArrayList<>();
         List<NodeInfoOnChain> candidateNodes = new ArrayList<>();
         Long top49Stake = 0L;
@@ -464,7 +464,7 @@ public class ConsensusNodeService {
                     fu += consensusPos;
                 }
                 BigDecimal fuFp = new BigDecimal(fp).add(new BigDecimal(fu));
-                fpFuList.add(fuFp);
+                fpFuList.put(i, fuFp);
                 BigDecimal decimal1 = proportion.multiply(new BigDecimal(fu * currentStake)).divide(new BigDecimal(currentStake - fp), 12, BigDecimal.ROUND_HALF_UP);
                 BigDecimal subtract = new BigDecimal(1).subtract(proportion);
                 BigDecimal decimal2 = new BigDecimal(fp).multiply(subtract);
