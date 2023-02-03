@@ -433,7 +433,7 @@ public class ConsensusNodeService {
         int preConsensusCount = ontSdkService.getPreConsensusCount();
         List<String> addressList = paramsConfig.getNodeFoundationAddress();
         List<String> nodeFoundationPublicKeys = paramsConfig.getNodeFoundationPublicKeys();
-        Map<Integer, BigDecimal> fpFuList = new HashMap<>();
+//        Map<Integer, BigDecimal> fpFuList = new HashMap<>();
         List<NodeInfoOnChain> consensusNodes = new ArrayList<>();
         List<NodeInfoOnChain> candidateNodes = new ArrayList<>();
         Long top49Stake = 0L;
@@ -464,7 +464,7 @@ public class ConsensusNodeService {
                     fu += consensusPos;
                 }
                 BigDecimal fuFp = new BigDecimal(fp).add(new BigDecimal(fu));
-                fpFuList.put(i, fuFp);
+//                fpFuList.put(i, fuFp);
                 BigDecimal decimal1 = proportion.multiply(new BigDecimal(fu * currentStake)).divide(new BigDecimal(currentStake - fp), 12, BigDecimal.ROUND_HALF_UP);
                 BigDecimal subtract = new BigDecimal(1).subtract(proportion);
                 BigDecimal decimal2 = new BigDecimal(fp).multiply(subtract);
@@ -592,14 +592,14 @@ public class ConsensusNodeService {
                 finalReleaseOng = getReleaseAndCommissionOng(currentStake, releaseOng, candidateTotalStake);
                 finalCommission = getReleaseAndCommissionOng(currentStake, commission, candidateTotalStake);
             }
-            if (nodeFoundationPublicKeys.contains(publicKey)) {
-                BigDecimal fp = new BigDecimal(nodeInfoOnChain.getInitPos());
-                BigDecimal siSubFp = currentStake.subtract(fp);
-                foundationInspire = first.multiply(siSubFp).multiply(initNodeProportion);
+            // 20210801之后没有基金会收益
+            if (nodeFoundationPublicKeys.contains(publicKey) && now < Constants.UTC_20210801) {
+//                BigDecimal fp = new BigDecimal(nodeInfoOnChain.getInitPos());
+//                BigDecimal siSubFp = currentStake.subtract(fp);
+//                foundationInspire = first.multiply(siSubFp).multiply(initNodeProportion);
                 // 用户收益
-                BigDecimal fpFu = fpFuList.get(i);
-                userStake = currentStake.subtract(fpFu);
-                // 20210801之后没有基金会收益
+//                BigDecimal fpFu = fpFuList.get(i);
+//                userStake = currentStake.subtract(fpFu);
 //                BigDecimal siPb = currentStake.multiply(initUserProportion);
 //                BigDecimal add = siPb.divide(siSubFp, 12, BigDecimal.ROUND_HALF_UP).add(second);
 //                userFoundationInspire = first.multiply(userStake).multiply(add);
