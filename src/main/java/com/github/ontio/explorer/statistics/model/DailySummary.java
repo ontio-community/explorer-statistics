@@ -15,15 +15,21 @@
 
 package com.github.ontio.explorer.statistics.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import javax.persistence.Column;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.math.BigDecimal;
-import javax.persistence.*;
 
 @Data
 @Builder
 @Table(name = "tbl_daily_summary")
+@NoArgsConstructor
+@AllArgsConstructor
 public class DailySummary {
     /**
      * 当天的UTC0点时间戳
