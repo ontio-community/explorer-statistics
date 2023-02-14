@@ -2,9 +2,7 @@ package com.github.ontio.explorer.statistics.aggregate.model;
 
 import com.github.ontio.explorer.statistics.aggregate.support.DateIdUtil;
 import com.github.ontio.explorer.statistics.model.TxDetail;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -15,6 +13,8 @@ import java.math.BigDecimal;
 @Builder
 @Getter
 @ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class TransactionInfo implements Serializable {
 
     private static final int EVENT_TYPE_TRANSFER = 3;
