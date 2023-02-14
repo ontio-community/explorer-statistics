@@ -12,7 +12,7 @@ import com.github.ontio.explorer.statistics.model.Contract;
 import com.github.ontio.explorer.statistics.model.TxDetail;
 import com.google.common.util.concurrent.RateLimiter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.RowBounds;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @RequiredArgsConstructor
 @Component
-@Log4j2
+@Slf4j
 public class AggregateSourceProducer {
 
     private static final int BATCH_SIZE = 5000;
