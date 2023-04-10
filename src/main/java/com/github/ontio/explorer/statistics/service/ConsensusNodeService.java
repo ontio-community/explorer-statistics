@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+import tk.mybatis.mapper.entity.Example;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -975,6 +976,61 @@ public class ConsensusNodeService {
         nodeOverviewMapper.updateLeftTimeToNxtRnd(leftTime.longValue());
     }
 
+    public void updateNodeState(){
+        Integer currentCycle = nodeCycleMapper.selectMaxCycle();
+        if (currentCycle == null) {
+            return;
+        }
+        List<NodeCycle> nodeCycleListCurrent = nodeCycleMapper.selectCycleData(currentCycle);
+        for (NodeCycle nodeCycle : nodeCycleListCurrent) {
+            Integer risky = 0;
+            Integer badActor = 0;
+            Integer stable = 1;
+            boolean isUpdateStale = true;
+            String publicKey = nodeCycle.getPublicKey();
+            List<NodeCycle> nodeCycleListByPublicKey = nodeCycleMapper.selectCycleDataByPublicKey(publicKey, 10);
+            if (nodeCycleListByPublicKey.size() < 10) {
+                isUpdateStale = false;
+            }
+            Integer currentNodeProportionTCount = Integer.valueOf(nodeCycle.getNodeProportionT().trim().substring(0, nodeCycle.getNodeProportionT().trim().length() - 1));
+            Integer currentUserProportionTCount = Integer.valueOf(nodeCycle.getUserProportionT().trim().substring(0, nodeCycle.getUserProportionT().trim().length() - 1));
+            Integer nodeProportionTCount = currentNodeProportionTCount;
+            Integer userProportionTCount = currentUserProportionTCount;
+            for (NodeCycle cycle : nodeCycleListByPublicKey) {
+                Integer userProportionT1_last = Integer.valueOf(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
+                Integer nodeProportionT1_last = Integer.valueOf(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
+                if (userProportionT1_last > userProportionTCount * 2 || nodeProportionT1_last > nodeProportionTCount * 2) {
+                    badActor = 1;
+                }
+                if (userProportionT1_last * 1.5 < userProportionTCount || nodeProportionT1_last * 1.5 < nodeProportionTCount){
+                    risky = 1;
+                }
+                if (userProportionT1_last > userProportionTCount || nodeProportionT1_last > nodeProportionTCount) {
+                    stable = 0;
+                }
+                nodeProportionTCount = nodeProportionT1_last;
+                userProportionTCount = userProportionT1_last;
+            }
+            if (currentNodeProportionTCount + currentUserProportionTCount < 80) {
+                stable = 0;
+            }
+            Example example = new Example(NodeInfoOffChain.class);
+            example.createCriteria().andEqualTo("publicKey", publicKey);
+            NodeInfoOffChain entity = nodeInfoOffChainMapper.selectOneByExample(example);
+            entity.setRisky(risky);
+            entity.setBadActor(badActor);
+            if (isUpdateStale){
+                entity.setFeeSharingRatio(stable);
+                if (stable == 1) {
+                    log.info("add a stable node , public key: {}", publicKey);
+                } else {
+                    log.info("not a stable node,  public key: {}", publicKey);
+                }
+            }
+            nodeInfoOffChainMapper.updateByPrimaryKeySelective(entity);
+        }
+    }
+
     public void updateStableNode() {
         Integer currentCycle = nodeCycleMapper.selectMaxCycle();
         if (currentCycle == null) {
@@ -992,23 +1048,27 @@ public class ConsensusNodeService {
             if (nodeCycleListByPublicKey.size() < 10) {
                 continue;
             }
-            String nodeProportionT = nodeCycle.getNodeProportionT();
-            String userProportionT = nodeCycle.getUserProportionT();
+            Integer currentNodeProportionTCount = Integer.valueOf(nodeCycle.getNodeProportionT().trim().substring(0, nodeCycle.getNodeProportionT().trim().length() - 1));
+            Integer currentUserProportionTCount = Integer.valueOf(nodeCycle.getUserProportionT().trim().substring(0, nodeCycle.getUserProportionT().trim().length() - 1));
+            Integer nodeProportionTCount = currentNodeProportionTCount;
+            Integer userProportionTCount = currentUserProportionTCount;
             boolean flag1 = false;
             for (NodeCycle cycle : nodeCycleListByPublicKey) {
-                String userProportionT1_last = cycle.getUserProportionT();
-                String nodeProportionT1_last = cycle.getNodeProportionT();
-                if (nodeProportionT.equals(nodeProportionT1_last) && userProportionT.equals(userProportionT1_last)) {
+                Integer userProportionT1_last = Integer.valueOf(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
+                Integer nodeProportionT1_last = Integer.valueOf(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
+                if (userProportionT1_last <= userProportionTCount && nodeProportionT1_last <= nodeProportionTCount) {
                     flag1 = true;
+                    nodeProportionTCount = nodeProportionT1_last;
+                    userProportionTCount = userProportionT1_last;
                 } else {
                     flag1 = false;
                     break;
                 }
             }
             //两个周期和的的收益比例分配要大于80%才合格
-            Integer nodeProportionTCount = Integer.valueOf(nodeProportionT.trim().substring(0, nodeProportionT.trim().length() - 1));
-            Integer userProportionTCount = Integer.valueOf(userProportionT.trim().substring(0, userProportionT.trim().length() - 1));
-            if (nodeProportionTCount + userProportionTCount < 80) {
+//            Integer nodeProportionTCount = Integer.valueOf(nodeProportionT.trim().substring(0, nodeProportionT.trim().length() - 1));
+//            Integer userProportionTCount = Integer.valueOf(userProportionT.trim().substring(0, userProportionT.trim().length() - 1));
+            if (currentNodeProportionTCount + currentUserProportionTCount < 80) {
                 flag1 = false;
             }
             if (flag1) {
