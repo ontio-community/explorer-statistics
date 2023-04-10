@@ -73,5 +73,7 @@ public class NodeInfoOffChain {
     @Column(name = "contact_info_verified")
     private Integer contactInfoVerified;
 
-
+    @Column(name = "bad_actor")
+    private Integer badActor;
+    private Integer risky;
 }
