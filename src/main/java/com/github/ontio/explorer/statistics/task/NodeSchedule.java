@@ -135,7 +135,7 @@ public class NodeSchedule {
     public void updateStableNode() {
         try {
             log.info("update stable node status task begin");
-            consensusNodeService.updateStableNode();
+            consensusNodeService.updateNodeState();
             log.info("update stable node status task  end... ");
         } catch (Exception e) {
             log.warn("update stable node status task  failed: {}", e);

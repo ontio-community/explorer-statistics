@@ -5,8 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.Column;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.math.BigDecimal;
-import javax.persistence.*;
 
 @Data
 @Builder
@@ -73,5 +76,7 @@ public class NodeInfoOffChain {
     @Column(name = "contact_info_verified")
     private Integer contactInfoVerified;
 
-
+    @Column(name = "bad_actor")
+    private Integer badActor;
+    private Integer risky;
 }
