@@ -992,37 +992,55 @@ public class ConsensusNodeService {
         if (currentCycle == null) {
             return;
         }
+        BigDecimal badActorRate = new BigDecimal("2");
+        BigDecimal riskyRate = new BigDecimal("1.5");
+        BigDecimal stableRate = new BigDecimal("0.2");
         List<NodeCycle> nodeCycleListCurrent = nodeCycleMapper.selectCycleData(currentCycle);
         for (NodeCycle nodeCycle : nodeCycleListCurrent) {
-            Integer risky = 0;
-            Integer badActor = 0;
-            Integer stable = 1;
+            int risky = 0;
+            int badActor = 0;
+            int stable = 1;
             boolean isUpdateStale = true;
             String publicKey = nodeCycle.getPublicKey();
             List<NodeCycle> nodeCycleListByPublicKey = nodeCycleMapper.selectCycleDataByPublicKey(publicKey, 10);
-            if (nodeCycleListByPublicKey.size() < 10) {
+            int cycleSize = nodeCycleListByPublicKey.size();
+            if (cycleSize < 5) {
                 isUpdateStale = false;
             }
-            Integer currentNodeProportionTCount = Integer.valueOf(nodeCycle.getNodeProportionT().trim().substring(0, nodeCycle.getNodeProportionT().trim().length() - 1));
-            Integer currentUserProportionTCount = Integer.valueOf(nodeCycle.getUserProportionT().trim().substring(0, nodeCycle.getUserProportionT().trim().length() - 1));
-            Integer nodeProportionTCount = currentNodeProportionTCount;
-            Integer userProportionTCount = currentUserProportionTCount;
-            for (NodeCycle cycle : nodeCycleListByPublicKey) {
-                Integer userProportionT1_last = Integer.valueOf(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
-                Integer nodeProportionT1_last = Integer.valueOf(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
-                if (userProportionT1_last > userProportionTCount * 2 || nodeProportionT1_last > nodeProportionTCount * 2) {
+            BigDecimal currentNodeProportionTCount = new BigDecimal(nodeCycle.getNodeProportionT().trim().substring(0, nodeCycle.getNodeProportionT().trim().length() - 1));
+            BigDecimal currentUserProportionTCount = new BigDecimal(nodeCycle.getUserProportionT().trim().substring(0, nodeCycle.getUserProportionT().trim().length() - 1));
+            BigDecimal nodeProportionTCount = currentNodeProportionTCount;
+            BigDecimal userProportionTCount = currentUserProportionTCount;
+            for (int i = 1; i < cycleSize; i++) {
+                NodeCycle cycle = nodeCycleListByPublicKey.get(i);
+                BigDecimal nodeProportionT1_last = new BigDecimal(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
+                BigDecimal userProportionT1_last = new BigDecimal(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
+
+                // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例显著降低了50%以上(相邻周期,userProportion||nodeProportion单独满足)
+                if (userProportionT1_last.compareTo(userProportionTCount.multiply(badActorRate)) > 0 || nodeProportionT1_last.compareTo(nodeProportionTCount.multiply(badActorRate)) > 0) {
                     badActor = 1;
                 }
-                if (userProportionT1_last * 1.5 < userProportionTCount || nodeProportionT1_last * 1.5 < nodeProportionTCount) {
+
+                // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例提高了50%以上(相邻周期,userProportion||nodeProportion单独满足)
+                if (userProportionT1_last.multiply(riskyRate).compareTo(userProportionTCount) < 0 || nodeProportionT1_last.multiply(riskyRate).compareTo(nodeProportionTCount) < 0) {
                     risky = 1;
                 }
-                if (userProportionT1_last > userProportionTCount || nodeProportionT1_last > nodeProportionTCount) {
-                    stable = 0;
+
+                // 至少连续5轮共识，未将费用分摊比例提高或降低超过20%(相邻周期,userProportion||nodeProportion单独满足)
+                if (i < 5) {
+                    BigDecimal userProportionGap = userProportionT1_last.subtract(userProportionTCount).abs();
+                    BigDecimal nodeProportionGap = nodeProportionT1_last.subtract(nodeProportionTCount).abs();
+                    BigDecimal userProportionAdjustRatio = userProportionGap.divide(userProportionT1_last, 4, RoundingMode.DOWN);
+                    BigDecimal nodeProportionAdjustRatio = nodeProportionGap.divide(nodeProportionT1_last, 4, RoundingMode.DOWN);
+                    if (userProportionAdjustRatio.compareTo(stableRate) > 0 || nodeProportionAdjustRatio.compareTo(stableRate) > 0) {
+                        stable = 0;
+                    }
                 }
+
                 nodeProportionTCount = nodeProportionT1_last;
                 userProportionTCount = userProportionT1_last;
             }
-            if (currentNodeProportionTCount + currentUserProportionTCount < 80) {
+            if (currentNodeProportionTCount.add(currentUserProportionTCount).compareTo(new BigDecimal("80")) < 0) {
                 stable = 0;
             }
             Example example = new Example(NodeInfoOffChain.class);
@@ -1032,11 +1050,6 @@ public class ConsensusNodeService {
             entity.setBadActor(badActor);
             if (isUpdateStale) {
                 entity.setFeeSharingRatio(stable);
-                if (stable == 1) {
-                    log.info("add a stable node , public key: {}", publicKey);
-                } else {
-                    log.info("not a stable node,  public key: {}", publicKey);
-                }
             }
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(entity);
         }
