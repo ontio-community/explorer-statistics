@@ -964,7 +964,6 @@ public class ConsensusNodeService {
     public void updateLeftRoundTime() {
         Long leftBlockHeight = nodeOverviewMapper.selectBlkCountToNxtRnd();
         Integer currentRound = nodeOverviewHistoryMapper.getCurrentRound();
-        BigDecimal velocity = new BigDecimal(0);
 
         Block blockCurrent = blockMapper.selectMaxBlock();
         Integer currentBlockHeight = blockCurrent.getBlockHeight();
@@ -972,17 +971,23 @@ public class ConsensusNodeService {
 
         int costTime = blockCurrent.getBlockTime() - blockBefore.getBlockTime();
 
-        velocity = (Constants.RECENT_BLOCK_VELOCITY).divide(new BigDecimal(costTime), 6, BigDecimal.ROUND_HALF_UP);
+        BigDecimal velocity = (Constants.RECENT_BLOCK_VELOCITY).divide(new BigDecimal(costTime), 6, RoundingMode.HALF_UP);
 
         NodeOverviewHistory lastNodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(currentRound - 1);
         NodeOverviewHistory last2NodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(currentRound - 2);
 
-        int i2 = last2NodeOverviewHistory.getRndEndTime() - last2NodeOverviewHistory.getRndStartTime();
-        int i1 = lastNodeOverviewHistory.getRndEndTime() - lastNodeOverviewHistory.getRndStartTime();
+        BigDecimal i2 = BigDecimal.valueOf(last2NodeOverviewHistory.getRndEndTime() - last2NodeOverviewHistory.getRndStartTime());
+        BigDecimal i1 = BigDecimal.valueOf(lastNodeOverviewHistory.getRndEndTime() - lastNodeOverviewHistory.getRndStartTime());
 
-        BigDecimal bdvalue = new BigDecimal(leftBlockHeight).divide(velocity, 6, BigDecimal.ROUND_HALF_UP).divide(new BigDecimal(paramsConfig.getMaxStakingChangeCount()), 6, BigDecimal.ROUND_HALF_UP).multiply(new BigDecimal(((paramsConfig.getMaxStakingChangeCount() - leftBlockHeight))));
-        BigDecimal pow = new BigDecimal(leftBlockHeight).divide(new BigDecimal(paramsConfig.getMaxStakingChangeCount())).multiply(new BigDecimal(leftBlockHeight).divide(new BigDecimal(paramsConfig.getMaxStakingChangeCount())));
-        BigDecimal leftTime = bdvalue.add(new BigDecimal((0.4 * i2 + 0.6 * i1)).multiply(pow)).setScale(4, RoundingMode.HALF_UP);
+        BigDecimal maxStakingChangeCount = new BigDecimal(paramsConfig.getMaxStakingChangeCount());
+        BigDecimal bdvalue = new BigDecimal(leftBlockHeight).divide(velocity, 6, RoundingMode.HALF_UP).divide(maxStakingChangeCount, 6, RoundingMode.HALF_UP).multiply(new BigDecimal(((paramsConfig.getMaxStakingChangeCount() - leftBlockHeight))));
+
+        BigDecimal leftBlockPercent = new BigDecimal(leftBlockHeight).divide(maxStakingChangeCount, 6, RoundingMode.HALF_UP);
+        BigDecimal pow = leftBlockPercent.multiply(leftBlockPercent);
+        BigDecimal fortyPercent = new BigDecimal("0.4");
+        BigDecimal sixtyPercent = new BigDecimal("0.6");
+        BigDecimal weighting = fortyPercent.multiply(i2).add(sixtyPercent.multiply(i1));
+        BigDecimal leftTime = bdvalue.add(weighting.multiply(pow)).setScale(4, RoundingMode.HALF_UP);
         log.info("left round time is {}", leftTime.toPlainString());
         nodeOverviewMapper.updateLeftTimeToNxtRnd(leftTime.longValue());
     }
