@@ -141,6 +141,6 @@
         SET balance     = balance + #{balance} - #{previousBalance},
             max_balance = max_balance + #{balance} - #{previousBalance},
             min_balance = min_balance + #{balance} - #{previousBalance}
-        WHERE date_id &lt;= 0 OR date_id > #{dateId}
+        WHERE address = #{address} AND token_contract_hash = #{tokenContractHash} AND (date_id &lt;= 0 OR date_id > #{dateId})
     </update>
 </mapper>
