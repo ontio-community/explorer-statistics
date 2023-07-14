@@ -221,9 +221,12 @@ public class AggregateSourceProducer {
                 List<TxDetail> details = txDetailMapper.selectByExample(example);
 
                 if (details == null || details.isEmpty()) {
+                    log.info("re-sync of contract {} from {} to {} transaction 0", contractHash, beginBlockHeight, Math.min(beginBlockHeight + BLOCK_BATCH_SIZE, endBlockHeight));
                     beginBlockHeight += BLOCK_BATCH_SIZE;
                     continue;
                 }
+
+                log.info("re-sync of contract {} from {} to {} transaction {}", contractHash, beginBlockHeight, Math.min(beginBlockHeight + BLOCK_BATCH_SIZE, endBlockHeight), details.size());
 
                 for (TxDetail detail : details) {
                     if (rateLimiter != null) {
@@ -247,6 +250,7 @@ public class AggregateSourceProducer {
         } catch (InterruptedException e) {
             log.error("end re-sync of {} interrupted", contractHash);
         }
+        log.info("reSync contract finish {}", contractHash);
     }
 
 }
