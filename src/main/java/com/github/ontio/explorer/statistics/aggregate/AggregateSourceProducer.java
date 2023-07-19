@@ -5,20 +5,25 @@ import com.github.ontio.explorer.statistics.aggregate.model.Tick;
 import com.github.ontio.explorer.statistics.aggregate.model.TransactionInfo;
 import com.github.ontio.explorer.statistics.aggregate.support.DisruptorEventDispatcher;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
+import com.github.ontio.explorer.statistics.mapper.AddressDailyAggregationMapper;
 import com.github.ontio.explorer.statistics.mapper.ContractMapper;
 import com.github.ontio.explorer.statistics.mapper.CurrentMapper;
 import com.github.ontio.explorer.statistics.mapper.TxDetailMapper;
+import com.github.ontio.explorer.statistics.model.AddressDailyAggregation;
 import com.github.ontio.explorer.statistics.model.Contract;
 import com.github.ontio.explorer.statistics.model.TxDetail;
 import com.google.common.util.concurrent.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.RowBounds;
+import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import tk.mybatis.mapper.entity.Example;
 
 import javax.annotation.PostConstruct;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +45,8 @@ public class AggregateSourceProducer {
     private final DisruptorEventDispatcher dispatcher;
 
     private final TxDetailMapper txDetailMapper;
+
+    private final AddressDailyAggregationMapper addressDailyAggregationMapper;
 
     private final CurrentMapper currentMapper;
 
@@ -253,4 +260,140 @@ public class AggregateSourceProducer {
         log.info("reSync contract finish {}", contractHash);
     }
 
+    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 60 * 10)
+    public void triggerFixReSync() {
+        if (config.isReSyncEnabled()) {
+            // reSyncStatus=4,需要修复重新同步的数据(txCount)
+            Example example = new Example(Contract.class);
+            example.and()
+                    .andEqualTo("auditFlag", 1)
+                    .andEqualTo("reSyncStatus", 4);
+            List<Contract> contracts = contractMapper.selectByExample(example);
+
+            if (contracts != null && !contracts.isEmpty()) {
+                try {
+                    reSyncing.set(true);
+                    TimeUnit.SECONDS.sleep(1);
+                    contracts.forEach(this::fixReSync);
+                } catch (InterruptedException e) {
+                    log.error("re-sync process interrupted");
+                } finally {
+                    reSyncing.set(false);
+                }
+            }
+        }
+    }
+
+    private void fixReSync(Contract contract) {
+        String contractHash = contract.getContractHash();
+
+        Example example = new Example(TxDetail.class);
+        example.createCriteria()
+                .andEqualTo("eventType", 3)
+                .andEqualTo("calledContractHash", contractHash);
+        example.selectProperties("fromAddress");
+        example.setDistinct(true);
+        List<TxDetail> txDetailsFrom = txDetailMapper.selectByExample(example);
+
+        example.selectProperties("toAddress");
+        List<TxDetail> txDetailsTo = txDetailMapper.selectByExample(example);
+
+        for (TxDetail txDetail : txDetailsFrom) {
+            String fromAddress = txDetail.getFromAddress();
+            if (StringUtils.hasLength(fromAddress)) {
+                fixAddressTxCount(fromAddress, contractHash, true);
+                fixAddressTxCount(fromAddress, AggregateContext.VIRTUAL_CONTRACT_ALL, false);
+            }
+        }
+
+        for (TxDetail txDetail : txDetailsTo) {
+            String toAddress = txDetail.getToAddress();
+            if (StringUtils.hasLength(toAddress)) {
+                fixAddressTxCount(toAddress, contractHash, true);
+                fixAddressTxCount(toAddress, AggregateContext.VIRTUAL_CONTRACT_ALL, false);
+            }
+        }
+        contract.setReSyncStatus(3);
+        contractMapper.updateByPrimaryKeySelective(contract);
+        log.info("fixReSync contract finish {}", contractHash);
+    }
+
+    private void fixAddressTxCount(String address, String contractHash, boolean isOep) {
+        // -1:实时,0:每天快照,先修复每天快照0,再用差值更新实时数据-1,-2147483648和-1的值一样
+        AddressDailyAggregation addressDailyAggregationSum = addressDailyAggregationMapper.selectSumTxCount(address, contractHash);
+        Integer sumDepositTxCount = addressDailyAggregationSum.getDepositTxCount();
+        Integer sumWithdrawTxCount = addressDailyAggregationSum.getWithdrawTxCount();
+        BigDecimal sumDepositAmount = addressDailyAggregationSum.getDepositAmount();
+        BigDecimal sumWithdrawAmount = addressDailyAggregationSum.getWithdrawAmount();
+
+        AddressDailyAggregation addressDailyAggregationSnapShot = addressDailyAggregationMapper.selectTxCount(address, contractHash, 0);
+        Integer depositTxCountSnapshot = addressDailyAggregationSnapShot.getDepositTxCount();
+        Integer withdrawTxCountSnapshot = addressDailyAggregationSnapShot.getWithdrawTxCount();
+        BigDecimal depositAmountSnapshot = addressDailyAggregationSnapShot.getDepositAmount();
+        BigDecimal withdrawAmountSnapshot = addressDailyAggregationSnapShot.getWithdrawAmount();
+        int depositTxCountGap = depositTxCountSnapshot - sumDepositTxCount;
+        int withdrawTxCountGap = withdrawTxCountSnapshot - sumWithdrawTxCount;
+        BigDecimal depositAmountGap = depositAmountSnapshot.subtract(sumDepositAmount);
+        BigDecimal withdrawAmountGap = withdrawAmountSnapshot.subtract(sumWithdrawAmount);
+        addressDailyAggregationSnapShot.setDepositTxCount(sumDepositTxCount);
+        addressDailyAggregationSnapShot.setWithdrawTxCount(sumWithdrawTxCount);
+        addressDailyAggregationSnapShot.setDepositAmount(sumDepositAmount);
+        addressDailyAggregationSnapShot.setWithdrawAmount(sumWithdrawAmount);
+        addressDailyAggregationMapper.updateTxCount(addressDailyAggregationSnapShot);
+
+        AddressDailyAggregation addressDailyAggregationRealTime = addressDailyAggregationMapper.selectTxCount(address, contractHash, -1);
+        if (addressDailyAggregationRealTime == null) {
+            addressDailyAggregationRealTime = new AddressDailyAggregation();
+            BeanUtils.copyProperties(addressDailyAggregationSnapShot, addressDailyAggregationRealTime);
+            addressDailyAggregationRealTime.setDateId(-1);
+            addressDailyAggregationMapper.insertSelective(addressDailyAggregationRealTime);
+        } else {
+            Integer depositTxCountRealTime = addressDailyAggregationRealTime.getDepositTxCount();
+            Integer withdrawTxCountRealTime = addressDailyAggregationRealTime.getWithdrawTxCount();
+            BigDecimal depositAmountRealTime = addressDailyAggregationSnapShot.getDepositAmount();
+            BigDecimal withdrawAmountRealTime = addressDailyAggregationSnapShot.getWithdrawAmount();
+            if (depositTxCountRealTime < depositTxCountSnapshot) {
+                addressDailyAggregationRealTime.setDepositTxCount(addressDailyAggregationSnapShot.getDepositTxCount());
+            } else {
+                int realDepositTxCount = depositTxCountRealTime - depositTxCountGap;
+                addressDailyAggregationRealTime.setDepositTxCount(realDepositTxCount);
+            }
+            if (withdrawTxCountRealTime < withdrawTxCountSnapshot) {
+                addressDailyAggregationRealTime.setWithdrawTxCount(addressDailyAggregationSnapShot.getWithdrawTxCount());
+            } else {
+                int realWithdrawTxCount = withdrawTxCountRealTime - withdrawTxCountGap;
+                addressDailyAggregationRealTime.setWithdrawTxCount(realWithdrawTxCount);
+            }
+            if (depositAmountRealTime.compareTo(depositAmountSnapshot) < 0) {
+                addressDailyAggregationRealTime.setDepositAmount(addressDailyAggregationSnapShot.getDepositAmount());
+            } else {
+                BigDecimal realDepositAmount = depositAmountRealTime.subtract(depositAmountGap);
+                addressDailyAggregationRealTime.setDepositAmount(realDepositAmount);
+            }
+            if (withdrawAmountRealTime.compareTo(withdrawAmountSnapshot) < 0) {
+                addressDailyAggregationRealTime.setWithdrawAmount(addressDailyAggregationSnapShot.getWithdrawAmount());
+            } else {
+                BigDecimal realWithdrawAmount = withdrawAmountRealTime.subtract(withdrawAmountGap);
+                addressDailyAggregationRealTime.setWithdrawAmount(realWithdrawAmount);
+            }
+            addressDailyAggregationMapper.updateTxCount(addressDailyAggregationRealTime);
+        }
+
+        if (isOep) {
+            AddressDailyAggregation addressDailyAggregationRealTimeForOep = addressDailyAggregationMapper.selectTxCount(address, contractHash, -2147483648);
+            if (addressDailyAggregationRealTimeForOep == null) {
+                addressDailyAggregationRealTimeForOep = new AddressDailyAggregation();
+                BeanUtils.copyProperties(addressDailyAggregationRealTime, addressDailyAggregationRealTimeForOep);
+                addressDailyAggregationRealTimeForOep.setDateId(-2147483648);
+                addressDailyAggregationMapper.insertSelective(addressDailyAggregationRealTimeForOep);
+            } else {
+                addressDailyAggregationRealTimeForOep.setDepositTxCount(addressDailyAggregationRealTime.getDepositTxCount());
+                addressDailyAggregationRealTimeForOep.setWithdrawTxCount(addressDailyAggregationRealTime.getWithdrawTxCount());
+                addressDailyAggregationRealTimeForOep.setDepositAmount(addressDailyAggregationRealTime.getDepositAmount());
+                addressDailyAggregationRealTimeForOep.setWithdrawAmount(addressDailyAggregationRealTime.getWithdrawAmount());
+                addressDailyAggregationMapper.updateTxCount(addressDailyAggregationRealTimeForOep);
+            }
+        }
+        log.info("fixAddressTxCount success:{},{}", address, contractHash);
+    }
 }

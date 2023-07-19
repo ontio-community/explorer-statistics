@@ -2,9 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.github.ontio.explorer.statistics.mapper.AddressDailyAggregationMapper">
     <resultMap id="BaseResultMap" type="com.github.ontio.explorer.statistics.model.AddressDailyAggregation">
-        <!--
-          WARNING - @mbg.generated
-        -->
         <result column="address" jdbcType="CHAR" property="address"/>
         <result column="token_contract_hash" jdbcType="CHAR" property="tokenContractHash"/>
         <result column="date_id" jdbcType="INTEGER" property="dateId"/>
@@ -123,17 +120,29 @@
         #{isVirtual})
         ON DUPLICATE KEY UPDATE
         usd_price = #{usdPrice},
-        <if test="dateId > 0">
-            balance = balance + #{balance} - #{previousBalance},
-            max_balance = max_balance + #{balance} - #{previousBalance},
-            min_balance = min_balance + #{balance} - #{previousBalance},
-        </if>
-        deposit_tx_count = deposit_tx_count + #{depositTxCount},
-        withdraw_tx_count = withdraw_tx_count + #{withdrawTxCount},
-        deposit_amount = deposit_amount + #{depositAmount},
-        withdraw_amount = withdraw_amount + #{withdrawAmount},
-        fee_amount = fee_amount + #{feeAmount},
-        is_virtual = #{isVirtual}
+        is_virtual = #{isVirtual},
+        <choose>
+            <when test="dateId > 0">
+                balance = balance + #{balance} - #{previousBalance},
+                max_balance = max_balance + #{balance} - #{previousBalance},
+                min_balance = min_balance + #{balance} - #{previousBalance},
+                deposit_tx_count = deposit_tx_count + #{depositTxCount},
+                withdraw_tx_count = withdraw_tx_count + #{withdrawTxCount},
+                deposit_amount = deposit_amount + #{depositAmount},
+                withdraw_amount = withdraw_amount + #{withdrawAmount},
+                fee_amount = fee_amount + #{feeAmount}
+            </when>
+        <otherwise>
+            balance = values(balance),
+            max_balance = values(max_balance),
+            min_balance = values(min_balance),
+            deposit_tx_count = values(deposit_tx_count),
+            withdraw_tx_count = values(withdraw_tx_count),
+            deposit_amount = values(deposit_amount),
+            withdraw_amount = values(withdraw_amount),
+            fee_amount = values(fee_amount)
+        </otherwise>
+        </choose>
     </insert>
 
     <update id="reSyncBalance">
@@ -142,5 +151,34 @@
             max_balance = max_balance + #{balance} - #{previousBalance},
             min_balance = min_balance + #{balance} - #{previousBalance}
         WHERE address = #{address} AND token_contract_hash = #{tokenContractHash} AND (date_id &lt;= 0 OR date_id > #{dateId})
+    </update>
+
+    <select id="selectSumTxCount" resultMap="BaseResultMap">
+        SELECT SUM(deposit_tx_count) AS deposit_tx_count,
+               SUM(withdraw_tx_count) AS withdraw_tx_count,
+               SUM(deposit_amount) AS deposit_amount,
+               SUM(withdraw_amount) AS withdraw_amount
+        from tbl_address_daily_aggregation
+        WHERE address = #{address}
+          AND token_contract_hash = #{contractHash}
+          AND date_id > 0
+    </select>
+
+    <select id="selectTxCount" resultMap="BaseResultMap">
+        SELECT *
+        from tbl_address_daily_aggregation
+        WHERE address = #{address}
+          AND token_contract_hash = #{contractHash}
+          AND date_id = #{dateId}
+
+    </select>
+
+    <update id="updateTxCount">
+        UPDATE tbl_address_daily_aggregation
+        SET deposit_tx_count = #{depositTxCount},
+            withdraw_tx_count = #{withdrawTxCount},
+            deposit_amount = #{depositAmount},
+            withdraw_amount = #{withdrawAmount}
+        WHERE address = #{address} AND token_contract_hash = #{tokenContractHash} AND date_id = #{dateId}
     </update>
 </mapper>

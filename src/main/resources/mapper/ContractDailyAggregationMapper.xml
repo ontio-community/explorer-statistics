@@ -2,9 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.github.ontio.explorer.statistics.mapper.ContractDailyAggregationMapper">
     <resultMap id="BaseResultMap" type="com.github.ontio.explorer.statistics.model.ContractDailyAggregation">
-        <!--
-          WARNING - @mbg.generated
-        -->
         <result column="contract_hash" jdbcType="CHAR" property="contractHash"/>
         <result column="token_contract_hash" jdbcType="CHAR" property="tokenContractHash"/>
         <result column="date_id" jdbcType="INTEGER" property="dateId"/>
@@ -95,9 +92,9 @@
             )
         </foreach>
         ON DUPLICATE KEY UPDATE
-        tx_count=tx_count + values(tx_count),
-        tx_amount=tx_amount + values(tx_amount),
-        fee_amount=fee_amount + values(fee_amount),
-        is_virtual=values(is_virtual)
+        is_virtual=values(is_virtual),
+        tx_count= CASE WHEN date_id > 0 THEN tx_count + values(tx_count) ELSE values(tx_count) END,
+        tx_amount= CASE WHEN date_id > 0 THEN tx_amount + values(tx_amount) ELSE values(tx_amount) END,
+        fee_amount=CASE WHEN date_id > 0 THEN fee_amount + values(fee_amount) ELSE values(fee_amount) END
     </insert>
 </mapper>
