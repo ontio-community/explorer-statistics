@@ -159,12 +159,12 @@ public class TransactionInfoAggregator extends DisruptorEventPublisherAdapter {
         List<AggregateKey> keys = new ArrayList<>(8);
         tokenContractHashes.forEach(hash -> addresses.forEach(address -> keys.add(new AddressAggregateKey(address, hash))));
 
-        if (!context.isReSyncing()) {
+//        if (!context.isReSyncing()) {
             // special aggregation for tx count of contractHash and calledContractHash
             Set<String> contractHashes = new HashSet<>(Arrays.asList(transactionInfo.getContractHash(),
                     transactionInfo.getCalledContractHash()));
             contractHashes.forEach(hash -> addresses.forEach(address -> keys.add(new AddressAggregateKey(address, hash, true))));
-        }
+//        }
 
         return keys;
     }

@@ -999,101 +999,71 @@ public class ConsensusNodeService {
         }
         List<NodeCycle> nodeCycleListCurrent = nodeCycleMapper.selectCycleData(currentCycle);
         for (NodeCycle nodeCycle : nodeCycleListCurrent) {
-            Integer risky = 0;
-            Integer badActor = 0;
-            Integer stable = 1;
-            boolean isUpdateStale = true;
+            int risky = 0;
+            int badActor = 0;
+            int stable = 1;
             String publicKey = nodeCycle.getPublicKey();
             List<NodeCycle> nodeCycleListByPublicKey = nodeCycleMapper.selectCycleDataByPublicKey(publicKey, 10);
-            if (nodeCycleListByPublicKey.size() < 10) {
-                isUpdateStale = false;
+            int cycleSize = nodeCycleListByPublicKey.size();
+
+            Integer currentNodeProportionT1Count = null;
+            Integer currentUserProportionT1Count = null;
+            Integer nodeProportionT1Count = null;
+            Integer userProportionT1Count = null;
+            for (int i = 1; i <= cycleSize; i++) {
+                int nodeProportionT1_last;
+                int userProportionT1_last;
+                if (i == cycleSize) {
+                    // 下一个周期的t就是前一个周期的t1
+                    NodeCycle cycle = nodeCycleListByPublicKey.get(i - 1);
+                    nodeProportionT1_last = Integer.parseInt(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
+                    userProportionT1_last = Integer.parseInt(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
+                } else {
+                    NodeCycle cycle = nodeCycleListByPublicKey.get(i);
+                    // 每个周期开始时,会根据当前周期t1的值,更新上个周期t2的值,所以用上个周期t2值代表这个周期的t1值
+                    nodeProportionT1_last = Integer.parseInt(cycle.getNodeProportionT2().trim().substring(0, cycle.getNodeProportionT2().trim().length() - 1));
+                    userProportionT1_last = Integer.parseInt(cycle.getUserProportionT2().trim().substring(0, cycle.getUserProportionT2().trim().length() - 1));
+                }
+
+                if (nodeProportionT1Count != null) {
+                    // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例显著降低了50%以上(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
+                    if (userProportionT1_last > userProportionT1Count + 50 || nodeProportionT1_last > nodeProportionT1Count + 50) {
+                        badActor = 1;
+                    }
+
+                    // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例提高了50%以上(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
+                    if (userProportionT1_last + 50 < userProportionT1Count || nodeProportionT1_last + 50 < nodeProportionT1Count) {
+                        risky = 1;
+                    }
+
+                    // 至少连续5轮共识，未将费用分摊比例提高或降低超过20%(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
+                    if (i < 5) {
+                        int userProportionGap = userProportionT1_last - userProportionT1Count;
+                        int nodeProportionGap = nodeProportionT1_last - nodeProportionT1Count;
+                        if (userProportionGap > 20 || userProportionGap < -20 || nodeProportionGap > 20 || nodeProportionGap < -20) {
+                            stable = 0;
+                        }
+                    }
+                } else {
+                    // 初始化当前周期下周期t1的分配比例
+                    currentNodeProportionT1Count = nodeProportionT1_last;
+                    currentUserProportionT1Count = userProportionT1_last;
+                }
+                nodeProportionT1Count = nodeProportionT1_last;
+                userProportionT1Count = userProportionT1_last;
             }
-            Integer currentNodeProportionTCount = Integer.valueOf(nodeCycle.getNodeProportionT().trim().substring(0, nodeCycle.getNodeProportionT().trim().length() - 1));
-            Integer currentUserProportionTCount = Integer.valueOf(nodeCycle.getUserProportionT().trim().substring(0, nodeCycle.getUserProportionT().trim().length() - 1));
-            Integer nodeProportionTCount = currentNodeProportionTCount;
-            Integer userProportionTCount = currentUserProportionTCount;
-            for (NodeCycle cycle : nodeCycleListByPublicKey) {
-                Integer userProportionT1_last = Integer.valueOf(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
-                Integer nodeProportionT1_last = Integer.valueOf(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
-                if (userProportionT1_last > userProportionTCount * 2 || nodeProportionT1_last > nodeProportionTCount * 2) {
-                    badActor = 1;
-                }
-                if (userProportionT1_last * 1.5 < userProportionTCount || nodeProportionT1_last * 1.5 < nodeProportionTCount){
-                    risky = 1;
-                }
-                if (userProportionT1_last > userProportionTCount || nodeProportionT1_last > nodeProportionTCount) {
-                    stable = 0;
-                }
-                nodeProportionTCount = nodeProportionT1_last;
-                userProportionTCount = userProportionT1_last;
-            }
-            if (currentNodeProportionTCount + currentUserProportionTCount < 80) {
+            // 稳定节点需要至少连续5轮共识,且收益分配比例之和>=80%
+            if (cycleSize < 5 || (currentNodeProportionT1Count + currentUserProportionT1Count < 80)) {
                 stable = 0;
             }
+
             Example example = new Example(NodeInfoOffChain.class);
             example.createCriteria().andEqualTo("publicKey", publicKey);
             NodeInfoOffChain entity = nodeInfoOffChainMapper.selectOneByExample(example);
-            entity.setRisky(risky);
+            entity.setFeeSharingRatio(stable);
             entity.setBadActor(badActor);
-            if (isUpdateStale){
-                entity.setFeeSharingRatio(stable);
-                if (stable == 1) {
-                    log.info("add a stable node , public key: {}", publicKey);
-                } else {
-                    log.info("not a stable node,  public key: {}", publicKey);
-                }
-            }
+            entity.setRisky(risky);
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(entity);
-        }
-    }
-
-    public void updateStableNode() {
-        Integer currentCycle = nodeCycleMapper.selectMaxCycle();
-        if (currentCycle == null) {
-            return;
-        }
-        List<NodeCycle> nodeCycleListCurrent = nodeCycleMapper.selectCycleData(currentCycle);
-        int beginCycle = currentCycle - 10;
-        List<NodeCycle> nodeCycleListBegin = nodeCycleMapper.selectCycleData(beginCycle);
-        if (CollectionUtils.isEmpty(nodeCycleListBegin)) {
-            return;
-        }
-        for (NodeCycle nodeCycle : nodeCycleListCurrent) {
-            String publicKey = nodeCycle.getPublicKey();
-            List<NodeCycle> nodeCycleListByPublicKey = nodeCycleMapper.selectCycleDataByPublicKey(publicKey, 10);
-            if (nodeCycleListByPublicKey.size() < 10) {
-                continue;
-            }
-            Integer currentNodeProportionTCount = Integer.valueOf(nodeCycle.getNodeProportionT().trim().substring(0, nodeCycle.getNodeProportionT().trim().length() - 1));
-            Integer currentUserProportionTCount = Integer.valueOf(nodeCycle.getUserProportionT().trim().substring(0, nodeCycle.getUserProportionT().trim().length() - 1));
-            Integer nodeProportionTCount = currentNodeProportionTCount;
-            Integer userProportionTCount = currentUserProportionTCount;
-            boolean flag1 = false;
-            for (NodeCycle cycle : nodeCycleListByPublicKey) {
-                Integer userProportionT1_last = Integer.valueOf(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
-                Integer nodeProportionT1_last = Integer.valueOf(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
-                if (userProportionT1_last <= userProportionTCount && nodeProportionT1_last <= nodeProportionTCount) {
-                    flag1 = true;
-                    nodeProportionTCount = nodeProportionT1_last;
-                    userProportionTCount = userProportionT1_last;
-                } else {
-                    flag1 = false;
-                    break;
-                }
-            }
-            //两个周期和的的收益比例分配要大于80%才合格
-//            Integer nodeProportionTCount = Integer.valueOf(nodeProportionT.trim().substring(0, nodeProportionT.trim().length() - 1));
-//            Integer userProportionTCount = Integer.valueOf(userProportionT.trim().substring(0, userProportionT.trim().length() - 1));
-            if (currentNodeProportionTCount + currentUserProportionTCount < 80) {
-                flag1 = false;
-            }
-            if (flag1) {
-                log.info("add a stable node , public key: {}", publicKey);
-                nodeInfoOffChainMapper.updateStableNodeByPubKey(publicKey, 1);
-            } else {
-                log.info("not a stable node,  public key: {}", publicKey);
-                nodeInfoOffChainMapper.updateStableNodeByPubKey(publicKey, 0);
-            }
         }
     }
 }
