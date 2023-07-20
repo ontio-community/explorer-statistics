@@ -997,10 +997,6 @@ public class ConsensusNodeService {
         if (currentCycle == null) {
             return;
         }
-        BigDecimal badActorRate = new BigDecimal("2");
-        BigDecimal riskyRate = new BigDecimal("1.5");
-        BigDecimal stableRate = new BigDecimal("0.2");
-        BigDecimal stableMinRequire = new BigDecimal("80");
         List<NodeCycle> nodeCycleListCurrent = nodeCycleMapper.selectCycleData(currentCycle);
         for (NodeCycle nodeCycle : nodeCycleListCurrent) {
             int risky = 0;
@@ -1010,39 +1006,54 @@ public class ConsensusNodeService {
             List<NodeCycle> nodeCycleListByPublicKey = nodeCycleMapper.selectCycleDataByPublicKey(publicKey, 10);
             int cycleSize = nodeCycleListByPublicKey.size();
 
-            BigDecimal currentNodeProportionTCount = new BigDecimal(nodeCycle.getNodeProportionT().trim().substring(0, nodeCycle.getNodeProportionT().trim().length() - 1));
-            BigDecimal currentUserProportionTCount = new BigDecimal(nodeCycle.getUserProportionT().trim().substring(0, nodeCycle.getUserProportionT().trim().length() - 1));
-            BigDecimal nodeProportionTCount = currentNodeProportionTCount;
-            BigDecimal userProportionTCount = currentUserProportionTCount;
-            for (int i = 1; i < cycleSize; i++) {
-                NodeCycle cycle = nodeCycleListByPublicKey.get(i);
-                BigDecimal nodeProportionT_last = new BigDecimal(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
-                BigDecimal userProportionT_last = new BigDecimal(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
-
-                // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例显著降低了50%以上(相邻周期,userProportion||nodeProportion单独满足)
-                if (userProportionT_last.compareTo(userProportionTCount.multiply(badActorRate)) > 0 || nodeProportionT_last.compareTo(nodeProportionTCount.multiply(badActorRate)) > 0) {
-                    badActor = 1;
+            Integer currentNodeProportionT1Count = null;
+            Integer currentUserProportionT1Count = null;
+            Integer nodeProportionT1Count = null;
+            Integer userProportionT1Count = null;
+            for (int i = 1; i <= cycleSize; i++) {
+                int nodeProportionT1_last;
+                int userProportionT1_last;
+                if (i == cycleSize) {
+                    // 下一个周期的t就是前一个周期的t1
+                    NodeCycle cycle = nodeCycleListByPublicKey.get(i - 1);
+                    nodeProportionT1_last = Integer.parseInt(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
+                    userProportionT1_last = Integer.parseInt(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
+                } else {
+                    NodeCycle cycle = nodeCycleListByPublicKey.get(i);
+                    // 每个周期开始时,会根据当前周期t1的值,更新上个周期t2的值,所以用上个周期t2值代表这个周期的t1值
+                    nodeProportionT1_last = Integer.parseInt(cycle.getNodeProportionT2().trim().substring(0, cycle.getNodeProportionT2().trim().length() - 1));
+                    userProportionT1_last = Integer.parseInt(cycle.getUserProportionT2().trim().substring(0, cycle.getUserProportionT2().trim().length() - 1));
                 }
 
-                // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例提高了50%以上(相邻周期,userProportion||nodeProportion单独满足)
-                if (userProportionT_last.multiply(riskyRate).compareTo(userProportionTCount) < 0 || nodeProportionT_last.multiply(riskyRate).compareTo(nodeProportionTCount) < 0) {
-                    risky = 1;
-                }
-
-                // 至少连续5轮共识，未将费用分摊比例提高或降低超过20%(相邻周期,userProportion||nodeProportion单独满足)
-                if (i < 5) {
-                    BigDecimal userProportionGap = userProportionT_last.subtract(userProportionTCount).abs();
-                    BigDecimal nodeProportionGap = nodeProportionT_last.subtract(nodeProportionTCount).abs();
-                    if (userProportionGap.compareTo(userProportionT_last.multiply(stableRate)) > 0 || nodeProportionGap.compareTo(nodeProportionT_last.multiply(stableRate)) > 0) {
-                        stable = 0;
+                if (nodeProportionT1Count != null) {
+                    // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例显著降低了50%以上(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
+                    if (userProportionT1_last > userProportionT1Count + 50 || nodeProportionT1_last > nodeProportionT1Count + 50) {
+                        badActor = 1;
                     }
-                }
 
-                nodeProportionTCount = nodeProportionT_last;
-                userProportionTCount = userProportionT_last;
+                    // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例提高了50%以上(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
+                    if (userProportionT1_last + 50 < userProportionT1Count || nodeProportionT1_last + 50 < nodeProportionT1Count) {
+                        risky = 1;
+                    }
+
+                    // 至少连续5轮共识，未将费用分摊比例提高或降低超过20%(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
+                    if (i < 5) {
+                        int userProportionGap = userProportionT1_last - userProportionT1Count;
+                        int nodeProportionGap = nodeProportionT1_last - nodeProportionT1Count;
+                        if (userProportionGap > 20 || userProportionGap < -20 || nodeProportionGap > 20 || nodeProportionGap < -20) {
+                            stable = 0;
+                        }
+                    }
+                } else {
+                    // 初始化当前周期下周期t1的分配比例
+                    currentNodeProportionT1Count = nodeProportionT1_last;
+                    currentUserProportionT1Count = userProportionT1_last;
+                }
+                nodeProportionT1Count = nodeProportionT1_last;
+                userProportionT1Count = userProportionT1_last;
             }
             // 稳定节点需要至少连续5轮共识,且收益分配比例之和>=80%
-            if (cycleSize < 5 || (currentNodeProportionTCount.add(currentUserProportionTCount).compareTo(stableMinRequire)) < 0) {
+            if (cycleSize < 5 || (currentNodeProportionT1Count + currentUserProportionT1Count < 80)) {
                 stable = 0;
             }
 
