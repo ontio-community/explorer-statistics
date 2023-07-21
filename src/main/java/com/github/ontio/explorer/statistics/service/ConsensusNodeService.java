@@ -1053,7 +1053,7 @@ public class ConsensusNodeService {
                 userProportionT1Count = userProportionT1_last;
             }
             // 稳定节点需要至少连续5轮共识,且收益分配比例之和>=80%
-            if (cycleSize < 5 || (currentNodeProportionT1Count + currentUserProportionT1Count < 80)) {
+            if (badActor == 1 || risky == 1 || cycleSize < 5 || (currentNodeProportionT1Count + currentUserProportionT1Count < 80)) {
                 stable = 0;
             }
 
