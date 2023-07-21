@@ -1037,7 +1037,7 @@ public class ConsensusNodeService {
                     }
 
                     // 至少连续5轮共识，未将费用分摊比例提高或降低超过20%(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
-                    if (i < 5) {
+                    if (i < 6) {
                         int userProportionGap = userProportionT1_last - userProportionT1Count;
                         int nodeProportionGap = nodeProportionT1_last - nodeProportionT1Count;
                         if (userProportionGap > 20 || userProportionGap < -20 || nodeProportionGap > 20 || nodeProportionGap < -20) {
