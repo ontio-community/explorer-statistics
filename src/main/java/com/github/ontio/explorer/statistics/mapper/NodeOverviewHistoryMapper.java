@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface NodeOverviewHistoryMapper extends Mapper<NodeOverviewHistory> {
 
-    List<NodeOverviewHistory> checkHistoryExist();
+    int checkHistoryExist();
 
     int updateRnkEndTime(@Param("roundEndBlock") long roundEndBlock, @Param("roundEndTime") int roundEndTime);
 

@@ -115,7 +115,15 @@ public class ConsensusNodeService {
     }
 
     public void updateBlockCountToNextRound() {
-        long blockCntToNxtRound = getBlockCountToNextRound();
+        GovernanceView view = ontSdkService.getGovernanceView();
+        if (view == null) {
+            log.warn("Getting governance view in consensus node service failed:");
+            return;
+        }
+        int roundStartBlock = view.height;
+        int stakingChangeCount = paramsConfig.getMaxStakingChangeCount();
+        long blockHeight = ontSdkService.getBlockHeight();
+        long blockCntToNxtRound = stakingChangeCount - (blockHeight - roundStartBlock);
         if (blockCntToNxtRound < 0) {
             return;
         }
@@ -126,26 +134,23 @@ public class ConsensusNodeService {
             log.warn("Updating block count to next round with value {} failed: {}", blockCntToNxtRound, e.getMessage());
         }
         // update node round history
-        long roundStartBlock = getRoundStartBlock();
-        if (roundStartBlock < 0) {
-            return;
-        }
-        int stakingChangeCount = ontSdkService.getStakingChangeCount();
         updateBlkRndHistory(roundStartBlock, stakingChangeCount);
     }
 
     private void updateBlkRndHistory(long roundStartBlock, int stakingChangeCount) {
-        List<NodeOverviewHistory> historyList = nodeOverviewHistoryMapper.checkHistoryExist();
-        int size = historyList.size();
-        if (size < 10) {
-            Long maintainEndBlk = roundStartBlock;
-            maintainBlkRndHistory(size, maintainEndBlk, stakingChangeCount);
-        }
         long roundEndBlock = roundStartBlock + stakingChangeCount - 1;
         NodeOverviewHistory overviewHistory = new NodeOverviewHistory();
         overviewHistory.setRndStartBlk(roundStartBlock);
         List<NodeOverviewHistory> list = nodeOverviewHistoryMapper.select(overviewHistory);
         if (CollectionUtils.isEmpty(list)) {
+            // maintain overview History
+            int size = nodeOverviewHistoryMapper.checkHistoryExist();
+            if (size < 10) {
+                Long maintainEndBlk = roundStartBlock;
+                maintainBlkRndHistory(size, maintainEndBlk, stakingChangeCount);
+            }
+
+            // add new overview history
             int cycle = ontSdkService.getGovernanceView().view;
             int roundStartTime = ontSdkService.getBlockTimeByHeight((int) roundStartBlock);
             overviewHistory.setRndStartTime(roundStartTime);
@@ -154,6 +159,8 @@ public class ConsensusNodeService {
             nodeOverviewHistoryMapper.updateRnkEndTime(roundStartBlock - 1, roundStartTime);
             nodeOverviewHistoryMapper.insertSelective(overviewHistory);
 
+            // update node over view RndStartTime
+            nodeOverviewMapper.updateRoundStartTime(roundStartTime);
             // update node round ong supply
             statisticsService.updateTotalOngSupply();
         }
@@ -269,25 +276,6 @@ public class ConsensusNodeService {
         } catch (Exception e) {
             log.info("Updating node position history from node info on chain task failed: {}", e.getMessage());
         }
-    }
-
-    private long getBlockCountToNextRound() {
-        GovernanceView view = ontSdkService.getGovernanceView();
-        if (view == null) {
-            log.warn("Getting governance view in consensus node service failed:");
-            return -1;
-        }
-        long blockHeight = ontSdkService.getBlockHeight();
-        return paramsConfig.getMaxStakingChangeCount() - (blockHeight - view.height);
-    }
-
-    private long getRoundStartBlock() {
-        GovernanceView view = ontSdkService.getGovernanceView();
-        if (view == null) {
-            log.warn("Getting governance view in consensus node service failed:");
-            return -1;
-        }
-        return view.height;
     }
 
     public void updateConsensusNodeInfo() {
