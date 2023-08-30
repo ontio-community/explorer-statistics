@@ -13,15 +13,9 @@
         <result column="cycle" jdbcType="INTEGER" property="cycle"/>
     </resultMap>
 
-    <select id="checkHistoryExist" resultMap="BaseResultMap">
-        SELECT id,
-        rnd_start_blk,
-        rnd_end_blk,
-        rnd_start_time,
-        rnd_end_time,
-        cycle
-        FROM tbl_node_overview_history
-        LIMIT 10;
+    <select id="checkHistoryExist" resultType="Integer">
+        SELECT COUNT(1)
+        FROM tbl_node_overview_history;
     </select>
     <update id="updateRnkEndTime">
         UPDATE tbl_node_overview_history
