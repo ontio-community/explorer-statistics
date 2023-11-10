@@ -30,8 +30,7 @@
     </sql>
 
     <select id="selectBlockMaxTime" resultType="java.lang.Integer" useCache="false">
-        select MAX(block_time) as time
-        from tbl_block
+        select block_time from tbl_block ORDER BY id desc limit 1;
     </select>
     <select id="selectBlockCountInOneDay" resultType="java.lang.Integer">
         select count(*) as nums
