@@ -72,6 +72,7 @@ config:
     - 0251f06bc247b1da94ec7d9fe25f5f913cedaecba8524140353b826cf9b1cbd9f4
     - 03c8f63775536eb420c96228cdccc9de7d80e87f1b562a6eb93c0838064350aa53
   evm-active-block: 13920000
+  cmc-api-key: 1
 
 node-schedule-task:
   update-on-chain-info: 300000

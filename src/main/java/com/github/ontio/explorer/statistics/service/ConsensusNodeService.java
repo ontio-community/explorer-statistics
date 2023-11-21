@@ -998,51 +998,67 @@ public class ConsensusNodeService {
             Integer currentUserProportionT1Count = null;
             Integer nodeProportionT1Count = null;
             Integer userProportionT1Count = null;
-            for (int i = 1; i <= cycleSize; i++) {
-                int nodeProportionT1_last;
-                int userProportionT1_last;
-                if (i == cycleSize) {
-                    // 下一个周期的t就是前一个周期的t1
-                    NodeCycle cycle = nodeCycleListByPublicKey.get(i - 1);
-                    nodeProportionT1_last = Integer.parseInt(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
-                    userProportionT1_last = Integer.parseInt(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
-                } else {
-                    NodeCycle cycle = nodeCycleListByPublicKey.get(i);
-                    // 每个周期开始时,会根据当前周期t1的值,更新上个周期t2的值,所以用上个周期t2值代表这个周期的t1值
-                    nodeProportionT1_last = Integer.parseInt(cycle.getNodeProportionT2().trim().substring(0, cycle.getNodeProportionT2().trim().length() - 1));
-                    userProportionT1_last = Integer.parseInt(cycle.getUserProportionT2().trim().substring(0, cycle.getUserProportionT2().trim().length() - 1));
-                }
-
-                if (nodeProportionT1Count != null) {
-                    // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例显著降低了50%以上(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
-                    if (userProportionT1_last > userProportionT1Count + 50 || nodeProportionT1_last > nodeProportionT1Count + 50) {
-                        badActor = 1;
+            if (cycleSize > 1) {
+                boolean checkNewNode = false;
+                boolean newNodeSetting = false;
+                for (int i = 1; i <= cycleSize; i++) {
+                    int nodeProportionT1_last;
+                    int userProportionT1_last;
+                    int dataCycle;
+                    if (i == cycleSize) {
+                        // 下一个周期的t就是前一个周期的t1
+                        // 如list倒序最后一个元素为周期218,此时i=10,应该取i=8,即周期219的t,代表周期218的t1
+                        NodeCycle cycle = nodeCycleListByPublicKey.get(i - 2);
+                        nodeProportionT1_last = Integer.parseInt(cycle.getNodeProportionT().trim().substring(0, cycle.getNodeProportionT().trim().length() - 1));
+                        userProportionT1_last = Integer.parseInt(cycle.getUserProportionT().trim().substring(0, cycle.getUserProportionT().trim().length() - 1));
+                        dataCycle = cycle.getCycle() - 1;
+                    } else {
+                        NodeCycle cycle = nodeCycleListByPublicKey.get(i);
+                        // 每个周期开始时,会根据当前周期t1的值,更新上个周期t2的值,所以用上个周期t2值代表这个周期的t1值
+                        nodeProportionT1_last = Integer.parseInt(cycle.getNodeProportionT2().trim().substring(0, cycle.getNodeProportionT2().trim().length() - 1));
+                        userProportionT1_last = Integer.parseInt(cycle.getUserProportionT2().trim().substring(0, cycle.getUserProportionT2().trim().length() - 1));
+                        dataCycle = cycle.getCycle() + 1;
                     }
 
-                    // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例提高了50%以上(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
-                    if (userProportionT1_last + 50 < userProportionT1Count || nodeProportionT1_last + 50 < nodeProportionT1Count) {
-                        risky = 1;
-                    }
-
-                    // 至少连续5轮共识，未将费用分摊比例提高或降低超过20%(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
-                    if (i < 6) {
-                        int userProportionGap = userProportionT1_last - userProportionT1Count;
-                        int nodeProportionGap = nodeProportionT1_last - nodeProportionT1Count;
-                        if (userProportionGap > 20 || userProportionGap < -20 || nodeProportionGap > 20 || nodeProportionGap < -20) {
-                            stable = 0;
+                    if (nodeProportionT1Count != null) {
+                        // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例显著降低了50%以上(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
+                        if (userProportionT1_last > userProportionT1Count + 50 || nodeProportionT1_last > nodeProportionT1Count + 50) {
+                            badActor = 1;
                         }
+
+                        // 在过去10轮中的至少一轮共识中，该节点的费用分摊比例提高了50%以上(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
+                        if (userProportionT1_last + 50 < userProportionT1Count || nodeProportionT1_last + 50 < nodeProportionT1Count) {
+                            // 新节点第一次调整不算作风险节点
+                            if (!checkNewNode) {
+                                int count = nodeCycleMapper.checkIfNewNodeSetting(publicKey, dataCycle);
+                                newNodeSetting = count == 0;
+                                checkNewNode = true;
+                            }
+                            if (!newNodeSetting) {
+                                risky = 1;
+                            }
+                        }
+
+                        // 至少连续5轮共识，未将费用分摊比例提高或降低超过20%(绝对值,非比例值,相邻周期,userProportion||nodeProportion单独满足)
+                        if (i < 6) {
+                            int userProportionGap = userProportionT1_last - userProportionT1Count;
+                            int nodeProportionGap = nodeProportionT1_last - nodeProportionT1Count;
+                            if (userProportionGap > 20 || userProportionGap < -20 || nodeProportionGap > 20 || nodeProportionGap < -20) {
+                                stable = 0;
+                            }
+                        }
+                    } else {
+                        // 初始化当前周期下周期t1的分配比例
+                        currentNodeProportionT1Count = nodeProportionT1_last;
+                        currentUserProportionT1Count = userProportionT1_last;
                     }
-                } else {
-                    // 初始化当前周期下周期t1的分配比例
-                    currentNodeProportionT1Count = nodeProportionT1_last;
-                    currentUserProportionT1Count = userProportionT1_last;
+                    nodeProportionT1Count = nodeProportionT1_last;
+                    userProportionT1Count = userProportionT1_last;
                 }
-                nodeProportionT1Count = nodeProportionT1_last;
-                userProportionT1Count = userProportionT1_last;
-            }
-            // 稳定节点需要至少连续5轮共识,且收益分配比例之和>=80%
-            if (badActor == 1 || risky == 1 || cycleSize < 5 || (currentNodeProportionT1Count + currentUserProportionT1Count < 80)) {
-                stable = 0;
+                // 稳定节点需要至少连续5轮共识,且收益分配比例之和>=80%
+                if (badActor == 1 || risky == 1 || cycleSize < 5 || (currentNodeProportionT1Count + currentUserProportionT1Count < 80) || newNodeSetting) {
+                    stable = 0;
+                }
             }
 
             Example example = new Example(NodeInfoOffChain.class);

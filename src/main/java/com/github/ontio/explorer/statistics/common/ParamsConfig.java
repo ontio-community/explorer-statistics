@@ -52,6 +52,8 @@ public class ParamsConfig {
 
     private int evmActiveBlock;
 
+    private String cmcApiKey;
+
     public interface Field {
 
         String maxStakingChangeCount = "maxStakingChangeCount";
