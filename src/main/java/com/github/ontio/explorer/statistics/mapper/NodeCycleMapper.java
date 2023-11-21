@@ -23,4 +23,6 @@ public interface NodeCycleMapper extends Mapper<NodeCycle> {
     int updateLastCycleBonus(@Param("publicKey") String publicKey, @Param("cycle") Integer cycle, @Param("bonusOng") BigDecimal bonusOng);
 
     List<NodeCycle> selectCycleDataByPublicKey(@Param("publicKey") String publicKey, @Param("size") Integer size);
+
+    int checkIfNewNodeSetting(@Param("publicKey") String publicKey, @Param("cycle") Integer cycle);
 }

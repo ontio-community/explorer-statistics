@@ -101,4 +101,12 @@
         limit #{size}
     </select>
 
+    <select id="checkIfNewNodeSetting" resultType="Integer">
+        SELECT COUNT(1)
+        FROM tbl_node_cycle_data
+        WHERE public_key = #{publicKey}
+          AND cycle <![CDATA[ < ]]> #{cycle}
+          AND node_proportion_t <![CDATA[ <> ]]> '0%'
+          AND user_proportion_t <![CDATA[ <> ]]> '0%';
+    </select>
 </mapper>
