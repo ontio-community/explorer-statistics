@@ -8,7 +8,7 @@ public enum USDT2CurrencyEnum {
     /**
      * 美元
      */
-    USD("usd"),
+    USD("USD"),
     /**
      * 新加坡元
      */
