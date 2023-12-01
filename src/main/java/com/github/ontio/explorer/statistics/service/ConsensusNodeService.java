@@ -1059,6 +1059,8 @@ public class ConsensusNodeService {
                 if (badActor == 1 || risky == 1 || cycleSize < 5 || (currentNodeProportionT1Count + currentUserProportionT1Count < 80) || newNodeSetting) {
                     stable = 0;
                 }
+            } else {
+                stable = 0;
             }
 
             Example example = new Example(NodeInfoOffChain.class);
