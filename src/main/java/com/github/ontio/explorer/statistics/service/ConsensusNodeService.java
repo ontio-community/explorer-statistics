@@ -596,8 +596,15 @@ public class ConsensusNodeService {
                 foundationInspire = first.multiply(currentStake).multiply(new BigDecimal(1).add(second));
             }
 
-            BigDecimal initPercent = nodeStake.divide(currentStake, 12, BigDecimal.ROUND_HALF_UP);
-            BigDecimal stakePercent = totalPos.divide(currentStake, 12, BigDecimal.ROUND_HALF_UP);
+            if (totalPos.compareTo(BigDecimal.ZERO) == 0) {
+                totalPos = new BigDecimal(paramsConfig.insteadZeroPos);
+            }
+            if (userStake.compareTo(BigDecimal.ZERO) == 0) {
+                userStake = new BigDecimal(paramsConfig.insteadZeroPos);
+            }
+
+            BigDecimal initPercent = nodeStake.divide(currentStake, 12, RoundingMode.HALF_UP);
+            BigDecimal stakePercent = totalPos.divide(currentStake, 12, RoundingMode.HALF_UP);
 
             BigDecimal initPartFinalReleaseOng = finalReleaseOng.multiply(initPercent);
             BigDecimal stakePartFinalReleaseOng = finalReleaseOng.multiply(stakePercent);
@@ -610,13 +617,6 @@ public class ConsensusNodeService {
 
             BigDecimal finalUserCommission = (initPartFinalCommission.multiply(initUserProportion)).add((stakePartFinalCommission.multiply(stakeUserProportion)));
             BigDecimal finalNodeCommission = (initPartFinalCommission.multiply(initNodeProportion)).add((stakePartFinalCommission.multiply(stakeNodeProportion)));
-
-            if (totalPos.compareTo(BigDecimal.ZERO) == 0) {
-                totalPos = new BigDecimal(paramsConfig.insteadZeroPos);
-            }
-            if (userStake.compareTo(BigDecimal.ZERO) == 0) {
-                userStake = new BigDecimal(paramsConfig.insteadZeroPos);
-            }
 
             BigDecimal nodeStakeUsd = nodeStake.multiply(ont);
             BigDecimal totalPosUsd = totalPos.multiply(ont);
