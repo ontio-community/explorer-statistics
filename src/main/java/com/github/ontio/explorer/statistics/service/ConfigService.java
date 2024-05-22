@@ -71,18 +71,20 @@ public class ConfigService {
         String address = insertOffChainNodeInfoDto.getAddress();
         String name = insertOffChainNodeInfoDto.getName();
         String publicKey = insertOffChainNodeInfoDto.getPublicKey();
-        if (StringUtils.isEmpty(publicKey)) {
+        if (!StringUtils.hasLength(publicKey)) {
             return new Response(61001, "Public key is blank", "");
         }
         String peerInfo = ontSdkService.getPeerInfo(publicKey);
-        if (!StringUtils.isEmpty(peerInfo)) {
+        if (StringUtils.hasLength(peerInfo)) {
+            JSONObject jsonObject = JSONObject.parseObject(peerInfo);
+            int status = jsonObject.getIntValue("status");
             NodeInfoOffChain nodeInfoOffChain = new NodeInfoOffChain();
             nodeInfoOffChain.setPublicKey(publicKey);
             nodeInfoOffChain.setAddress(address);
             nodeInfoOffChain.setName(name);
             nodeInfoOffChain.setVerification(0);
             nodeInfoOffChain.setOntId("");
-            nodeInfoOffChain.setNodeType(1);
+            nodeInfoOffChain.setNodeType(status);
             nodeInfoOffChain.setOpenFlag(true);
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
             return new Response(0, "SUCCESS", "SUCCESS");
@@ -109,14 +111,22 @@ public class ConfigService {
         if (ontId == null) {
             nodeInfoOffChain.setOntId("");
         }
-        nodeInfoOffChain.setNodeType(1);
         String nodePublicKey = nodeInfoOffChain.getPublicKey();
         String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
-        if (StringUtils.isEmpty(name)) {
+        if (!StringUtils.hasLength(name)) {
             // insert
+            String peerInfo = ontSdkService.getPeerInfo(nodePublicKey);
+            if (StringUtils.hasLength(peerInfo)) {
+                JSONObject jsonObject = JSONObject.parseObject(peerInfo);
+                int status = jsonObject.getIntValue("status");
+                nodeInfoOffChain.setNodeType(status);
+            } else {
+                nodeInfoOffChain.setNodeType(1);
+            }
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
             // update
+            nodeInfoOffChain.setNodeType(null);
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
         }
         return new Response(0, "SUCCESS", "SUCCESS");
@@ -147,14 +157,22 @@ public class ConfigService {
         if (ontId == null) {
             nodeInfoOffChain.setOntId("");
         }
-        nodeInfoOffChain.setNodeType(1);
         String nodePublicKey = nodeInfoOffChain.getPublicKey();
         String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
-        if (StringUtils.isEmpty(name)) {
+        if (!StringUtils.hasLength(name)) {
             // insert
+            String peerInfo = ontSdkService.getPeerInfo(nodePublicKey);
+            if (StringUtils.hasLength(peerInfo)) {
+                JSONObject jsonObject = JSONObject.parseObject(peerInfo);
+                int status = jsonObject.getIntValue("status");
+                nodeInfoOffChain.setNodeType(status);
+            } else {
+                nodeInfoOffChain.setNodeType(1);
+            }
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
             // update
+            nodeInfoOffChain.setNodeType(null);
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
         }
         return new Response(0, "SUCCESS", "SUCCESS");
