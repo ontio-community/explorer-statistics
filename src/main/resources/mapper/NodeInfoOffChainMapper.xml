@@ -43,7 +43,8 @@ CASE
 FROM
 	tbl_node_info_on_chain onchain
     ON DUPLICATE KEY UPDATE
-    node_type = VALUES(node_type)
+    node_type = VALUES(node_type),
+    address = VALUES(address)
   </insert>
 
 

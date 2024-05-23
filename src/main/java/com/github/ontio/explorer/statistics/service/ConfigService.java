@@ -17,6 +17,7 @@ import com.github.ontio.explorer.statistics.model.dto.UpdateOffChainNodeInfoDto;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -68,7 +69,6 @@ public class ConfigService {
     }
 
     public Response insertOffChainInfo(InsertOffChainNodeInfoDto insertOffChainNodeInfoDto) throws Exception {
-        String address = insertOffChainNodeInfoDto.getAddress();
         String name = insertOffChainNodeInfoDto.getName();
         String publicKey = insertOffChainNodeInfoDto.getPublicKey();
         if (!StringUtils.hasLength(publicKey)) {
@@ -78,6 +78,7 @@ public class ConfigService {
         if (StringUtils.hasLength(peerInfo)) {
             JSONObject jsonObject = JSONObject.parseObject(peerInfo);
             int status = jsonObject.getIntValue("status");
+            String address = jsonObject.getString("address");
             NodeInfoOffChain nodeInfoOffChain = new NodeInfoOffChain();
             nodeInfoOffChain.setPublicKey(publicKey);
             nodeInfoOffChain.setAddress(address);
@@ -86,7 +87,11 @@ public class ConfigService {
             nodeInfoOffChain.setOntId("");
             nodeInfoOffChain.setNodeType(status);
             nodeInfoOffChain.setOpenFlag(true);
-            nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
+            try {
+                nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
+            } catch (DuplicateKeyException e) {
+                nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
+            }
             return new Response(0, "SUCCESS", "SUCCESS");
         } else {
             return new Response(61003, "Node not found on chain", "");
@@ -112,21 +117,28 @@ public class ConfigService {
             nodeInfoOffChain.setOntId("");
         }
         String nodePublicKey = nodeInfoOffChain.getPublicKey();
+        String peerInfo = ontSdkService.getPeerInfo(nodePublicKey);
+        if (!StringUtils.hasLength(peerInfo)) {
+            return new Response(61003, "Node not found on chain", "");
+        }
+        JSONObject jsonObject = JSONObject.parseObject(peerInfo);
+        int status = jsonObject.getIntValue("status");
+        String address = jsonObject.getString("address");
+        nodeInfoOffChain.setAddress(address);
+        nodeInfoOffChain.setNodeType(status);
         String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
         if (!StringUtils.hasLength(name)) {
             // insert
-            String peerInfo = ontSdkService.getPeerInfo(nodePublicKey);
-            if (StringUtils.hasLength(peerInfo)) {
-                JSONObject jsonObject = JSONObject.parseObject(peerInfo);
-                int status = jsonObject.getIntValue("status");
-                nodeInfoOffChain.setNodeType(status);
-            } else {
-                nodeInfoOffChain.setNodeType(1);
-            }
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
             // update
-            nodeInfoOffChain.setNodeType(null);
+            nodeInfoOffChain.setVerification(null);
+            nodeInfoOffChain.setFeeSharingRatio(null);
+            nodeInfoOffChain.setOntologyHarbinger(null);
+            nodeInfoOffChain.setOldNode(null);
+            nodeInfoOffChain.setContactInfoVerified(null);
+            nodeInfoOffChain.setBadActor(null);
+            nodeInfoOffChain.setRisky(null);
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
         }
         return new Response(0, "SUCCESS", "SUCCESS");
@@ -158,21 +170,28 @@ public class ConfigService {
             nodeInfoOffChain.setOntId("");
         }
         String nodePublicKey = nodeInfoOffChain.getPublicKey();
+        String peerInfo = ontSdkService.getPeerInfo(nodePublicKey);
+        if (!StringUtils.hasLength(peerInfo)) {
+            return new Response(61003, "Node not found on chain", "");
+        }
+        JSONObject jsonObject = JSONObject.parseObject(peerInfo);
+        int status = jsonObject.getIntValue("status");
+        String address = jsonObject.getString("address");
+        nodeInfoOffChain.setAddress(address);
+        nodeInfoOffChain.setNodeType(status);
         String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
         if (!StringUtils.hasLength(name)) {
             // insert
-            String peerInfo = ontSdkService.getPeerInfo(nodePublicKey);
-            if (StringUtils.hasLength(peerInfo)) {
-                JSONObject jsonObject = JSONObject.parseObject(peerInfo);
-                int status = jsonObject.getIntValue("status");
-                nodeInfoOffChain.setNodeType(status);
-            } else {
-                nodeInfoOffChain.setNodeType(1);
-            }
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
             // update
-            nodeInfoOffChain.setNodeType(null);
+            nodeInfoOffChain.setVerification(null);
+            nodeInfoOffChain.setFeeSharingRatio(null);
+            nodeInfoOffChain.setOntologyHarbinger(null);
+            nodeInfoOffChain.setOldNode(null);
+            nodeInfoOffChain.setContactInfoVerified(null);
+            nodeInfoOffChain.setBadActor(null);
+            nodeInfoOffChain.setRisky(null);
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
         }
         return new Response(0, "SUCCESS", "SUCCESS");
