@@ -1,6 +1,7 @@
 package com.github.ontio.explorer.statistics.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.github.ontio.common.Address;
 import com.github.ontio.common.Helper;
 import com.github.ontio.core.asset.Sig;
 import com.github.ontio.core.payload.InvokeCode;
@@ -124,6 +125,10 @@ public class ConfigService {
         JSONObject jsonObject = JSONObject.parseObject(peerInfo);
         int status = jsonObject.getIntValue("status");
         String address = jsonObject.getString("address");
+        String stakeAddress = Address.addressFromPubKey(stakePublicKey).toBase58();
+        if (!address.equals(stakeAddress)) {
+            return new Response(62006, "Verify signature failed.", "");
+        }
         nodeInfoOffChain.setAddress(address);
         nodeInfoOffChain.setNodeType(status);
         String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
@@ -146,7 +151,7 @@ public class ConfigService {
 
     public Response updateOffChainInfoByLedger(UpdateOffChainNodeInfoDto updateOffChainNodeInfoDto) throws Exception {
         String nodeInfo = updateOffChainNodeInfoDto.getNodeInfo();
-        String publicKey = updateOffChainNodeInfoDto.getPublicKey();
+        String stakePublicKey = updateOffChainNodeInfoDto.getPublicKey();
 
         byte[] nodeInfoBytes = Helper.hexToBytes(nodeInfo);
         InvokeCode transaction = (InvokeCode) Transaction.deserializeFrom(nodeInfoBytes);
@@ -157,7 +162,7 @@ public class ConfigService {
         String tx = hex.substring(0, hex.length() - 2);
         byte[] data = Digest.hash256(Helper.hexToBytes(tx));
 
-        boolean verify = ontSdkService.verifySignatureByPublicKey(publicKey, data, signature);
+        boolean verify = ontSdkService.verifySignatureByPublicKey(stakePublicKey, data, signature);
         if (!verify) {
             return new Response(62006, "Verify signature failed.", "");
         }
@@ -177,6 +182,10 @@ public class ConfigService {
         JSONObject jsonObject = JSONObject.parseObject(peerInfo);
         int status = jsonObject.getIntValue("status");
         String address = jsonObject.getString("address");
+        String stakeAddress = Address.addressFromPubKey(stakePublicKey).toBase58();
+        if (!address.equals(stakeAddress)) {
+            return new Response(62006, "Verify signature failed.", "");
+        }
         nodeInfoOffChain.setAddress(address);
         nodeInfoOffChain.setNodeType(status);
         String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
