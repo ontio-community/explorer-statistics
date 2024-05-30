@@ -78,12 +78,12 @@ public class ConfigService {
         }
         String peerInfo = null;
         int i = 0;
-        while (peerInfo == null && i < 3) {
+        while (peerInfo == null && i < 6) {
             peerInfo = ontSdkService.getPeerInfo(publicKey);
             if (peerInfo == null) {
                 i++;
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 } catch (Exception ignore) {
                 }
             }
