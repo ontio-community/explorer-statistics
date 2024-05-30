@@ -84,6 +84,17 @@ node-schedule-task:
   update-round-left-time: 300000
   update-stable-node: 3600000
 
+# mainnet config:
+#node-schedule-task:
+#  update-on-chain-info: 300000
+#  update-net-nodes-info: "0 20 0 * * *"
+#  update-block-count-to-next-round: 6000
+#  update-node-rank-history: 300000
+#  update-node-annualized-yield: 300000
+#  update-cycle-time: 30000
+#  update-round-left-time: 300000
+#  update-stable-node: 3600000
+
 #logging:
 #  level:
 #    com.github.ontio.explorer.statistics.mapper: debug
