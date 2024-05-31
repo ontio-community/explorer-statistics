@@ -359,7 +359,7 @@ public class ConsensusNodeService {
             BigDecimal targetPos = new BigDecimal(initPos).add(new BigDecimal(maxAuthorize));
             BigDecimal progress = currentPos.multiply(Constants.ONE_HUNDRED).divide(targetPos, 2, RoundingMode.DOWN);
             if (Constants.ONE_HUNDRED.compareTo(progress) < 0) {
-                progress = Constants.ONE_HUNDRED;
+                progress = Constants.ONE_HUNDRED.setScale(2, RoundingMode.DOWN);
             }
             node.setCurrentStake(currentPos.longValue());
             node.setProgress(progress.toPlainString() + "%");

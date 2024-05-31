@@ -1,6 +1,7 @@
 package com.github.ontio.explorer.statistics.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.github.ontio.common.Address;
 import com.github.ontio.common.Helper;
 import com.github.ontio.core.asset.Sig;
 import com.github.ontio.core.payload.InvokeCode;
@@ -10,13 +11,16 @@ import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.common.Response;
 import com.github.ontio.explorer.statistics.mapper.ConfigMapper;
 import com.github.ontio.explorer.statistics.mapper.NodeInfoOffChainMapper;
+import com.github.ontio.explorer.statistics.mapper.NodeInfoOnChainMapper;
 import com.github.ontio.explorer.statistics.model.Config;
 import com.github.ontio.explorer.statistics.model.NodeInfoOffChain;
+import com.github.ontio.explorer.statistics.model.NodeInfoOnChain;
 import com.github.ontio.explorer.statistics.model.dto.InsertOffChainNodeInfoDto;
 import com.github.ontio.explorer.statistics.model.dto.UpdateOffChainNodeInfoDto;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -24,22 +28,18 @@ import org.springframework.util.StringUtils;
 @Service
 @NoArgsConstructor
 public class ConfigService {
-
-    private ParamsConfig paramsConfig;
-
-    private ConfigMapper configMapper;
-
-    private OntSdkService ontSdkService;
-
-    private NodeInfoOffChainMapper nodeInfoOffChainMapper;
-
     @Autowired
-    public ConfigService(ParamsConfig paramsConfig, ConfigMapper configMapper, OntSdkService ontSdkService, NodeInfoOffChainMapper nodeInfoOffChainMapper) {
-        this.paramsConfig = paramsConfig;
-        this.configMapper = configMapper;
-        this.ontSdkService = ontSdkService;
-        this.nodeInfoOffChainMapper = nodeInfoOffChainMapper;
-    }
+    private ParamsConfig paramsConfig;
+    @Autowired
+    private ConfigMapper configMapper;
+    @Autowired
+    private OntSdkService ontSdkService;
+    @Autowired
+    private NodeInfoOffChainMapper nodeInfoOffChainMapper;
+    @Autowired
+    private NodeInfoOnChainMapper nodeInfoOnChainMapper;
+    @Autowired
+    private ConsensusNodeService consensusNodeService;
 
 
     public String getMaxStakingChangeCount() {
@@ -68,28 +68,64 @@ public class ConfigService {
     }
 
     public Response insertOffChainInfo(InsertOffChainNodeInfoDto insertOffChainNodeInfoDto) throws Exception {
-        String address = insertOffChainNodeInfoDto.getAddress();
         String name = insertOffChainNodeInfoDto.getName();
         String publicKey = insertOffChainNodeInfoDto.getPublicKey();
-        if (StringUtils.isEmpty(publicKey)) {
+        if (!StringUtils.hasLength(publicKey)) {
             return new Response(61001, "Public key is blank", "");
         }
-        String peerInfo = ontSdkService.getPeerInfo(publicKey);
-        if (!StringUtils.isEmpty(peerInfo)) {
+        if (!StringUtils.hasLength(name)) {
+            name = "Node_" + publicKey.substring(0, 6);
+        }
+        String peerInfo = null;
+        int i = 0;
+        while (peerInfo == null && i < 6) {
+            peerInfo = ontSdkService.getPeerInfo(publicKey);
+            if (peerInfo == null) {
+                i++;
+                try {
+                    Thread.sleep(500);
+                } catch (Exception ignore) {
+                }
+            }
+        }
+
+        if (StringUtils.hasLength(peerInfo)) {
+            JSONObject jsonObject = JSONObject.parseObject(peerInfo);
+            int status = jsonObject.getIntValue("status");
+            String address = jsonObject.getString("address");
             NodeInfoOffChain nodeInfoOffChain = new NodeInfoOffChain();
             nodeInfoOffChain.setPublicKey(publicKey);
             nodeInfoOffChain.setAddress(address);
             nodeInfoOffChain.setName(name);
             nodeInfoOffChain.setVerification(0);
             nodeInfoOffChain.setOntId("");
-            nodeInfoOffChain.setNodeType(1);
+            if (status == 1 || status == 2) {
+                nodeInfoOffChain.setNodeType(status);
+            } else if (status == 3) {
+                // 3为共识节点退出
+                nodeInfoOffChain.setNodeType(2);
+            } else {
+                nodeInfoOffChain.setNodeType(1);
+            }
             nodeInfoOffChain.setOpenFlag(true);
-            nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
+            try {
+                nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
+                if (status == 1 || status == 2) {
+                    consensusNodeService.updateConsensusNodeInfo();
+                    consensusNodeService.updateNodeAnnualizedYield();
+                }
+            } catch (DuplicateKeyException e) {
+                nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
+                NodeInfoOnChain nodeInfoOnChain = nodeInfoOnChainMapper.selectByPublicKey(publicKey);
+                if (nodeInfoOnChain == null && (status == 1 || status == 2)) {
+                    consensusNodeService.updateConsensusNodeInfo();
+                    consensusNodeService.updateNodeAnnualizedYield();
+                }
+            }
             return new Response(0, "SUCCESS", "SUCCESS");
         } else {
             return new Response(61003, "Node not found on chain", "");
         }
-
     }
 
     public Response updateOffChainInfoByPublicKey(UpdateOffChainNodeInfoDto updateOffChainNodeInfoDto) throws Exception {
@@ -109,14 +145,40 @@ public class ConfigService {
         if (ontId == null) {
             nodeInfoOffChain.setOntId("");
         }
-        nodeInfoOffChain.setNodeType(1);
         String nodePublicKey = nodeInfoOffChain.getPublicKey();
+        String peerInfo = ontSdkService.getPeerInfo(nodePublicKey);
+        if (!StringUtils.hasLength(peerInfo)) {
+            return new Response(61003, "Node not found on chain", "");
+        }
+        JSONObject jsonObject = JSONObject.parseObject(peerInfo);
+        int status = jsonObject.getIntValue("status");
+        String address = jsonObject.getString("address");
+        String stakeAddress = Address.addressFromPubKey(stakePublicKey).toBase58();
+        if (!address.equals(stakeAddress)) {
+            return new Response(62006, "Verify signature failed.", "");
+        }
+        nodeInfoOffChain.setAddress(address);
+        if (status == 1 || status == 2) {
+            nodeInfoOffChain.setNodeType(status);
+        } else if (status == 3) {
+            // 3为共识节点退出
+            nodeInfoOffChain.setNodeType(2);
+        } else {
+            nodeInfoOffChain.setNodeType(1);
+        }
         String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
-        if (StringUtils.isEmpty(name)) {
+        if (!StringUtils.hasLength(name)) {
             // insert
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
             // update
+            nodeInfoOffChain.setVerification(null);
+            nodeInfoOffChain.setFeeSharingRatio(null);
+            nodeInfoOffChain.setOntologyHarbinger(null);
+            nodeInfoOffChain.setOldNode(null);
+            nodeInfoOffChain.setContactInfoVerified(null);
+            nodeInfoOffChain.setBadActor(null);
+            nodeInfoOffChain.setRisky(null);
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
         }
         return new Response(0, "SUCCESS", "SUCCESS");
@@ -124,7 +186,7 @@ public class ConfigService {
 
     public Response updateOffChainInfoByLedger(UpdateOffChainNodeInfoDto updateOffChainNodeInfoDto) throws Exception {
         String nodeInfo = updateOffChainNodeInfoDto.getNodeInfo();
-        String publicKey = updateOffChainNodeInfoDto.getPublicKey();
+        String stakePublicKey = updateOffChainNodeInfoDto.getPublicKey();
 
         byte[] nodeInfoBytes = Helper.hexToBytes(nodeInfo);
         InvokeCode transaction = (InvokeCode) Transaction.deserializeFrom(nodeInfoBytes);
@@ -135,7 +197,7 @@ public class ConfigService {
         String tx = hex.substring(0, hex.length() - 2);
         byte[] data = Digest.hash256(Helper.hexToBytes(tx));
 
-        boolean verify = ontSdkService.verifySignatureByPublicKey(publicKey, data, signature);
+        boolean verify = ontSdkService.verifySignatureByPublicKey(stakePublicKey, data, signature);
         if (!verify) {
             return new Response(62006, "Verify signature failed.", "");
         }
@@ -147,14 +209,40 @@ public class ConfigService {
         if (ontId == null) {
             nodeInfoOffChain.setOntId("");
         }
-        nodeInfoOffChain.setNodeType(1);
         String nodePublicKey = nodeInfoOffChain.getPublicKey();
+        String peerInfo = ontSdkService.getPeerInfo(nodePublicKey);
+        if (!StringUtils.hasLength(peerInfo)) {
+            return new Response(61003, "Node not found on chain", "");
+        }
+        JSONObject jsonObject = JSONObject.parseObject(peerInfo);
+        int status = jsonObject.getIntValue("status");
+        String address = jsonObject.getString("address");
+        String stakeAddress = Address.addressFromPubKey(stakePublicKey).toBase58();
+        if (!address.equals(stakeAddress)) {
+            return new Response(62006, "Verify signature failed.", "");
+        }
+        nodeInfoOffChain.setAddress(address);
+        if (status == 1 || status == 2) {
+            nodeInfoOffChain.setNodeType(status);
+        } else if (status == 3) {
+            // 3为共识节点退出
+            nodeInfoOffChain.setNodeType(2);
+        } else {
+            nodeInfoOffChain.setNodeType(1);
+        }
         String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
-        if (StringUtils.isEmpty(name)) {
+        if (!StringUtils.hasLength(name)) {
             // insert
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
             // update
+            nodeInfoOffChain.setVerification(null);
+            nodeInfoOffChain.setFeeSharingRatio(null);
+            nodeInfoOffChain.setOntologyHarbinger(null);
+            nodeInfoOffChain.setOldNode(null);
+            nodeInfoOffChain.setContactInfoVerified(null);
+            nodeInfoOffChain.setBadActor(null);
+            nodeInfoOffChain.setRisky(null);
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(nodeInfoOffChain);
         }
         return new Response(0, "SUCCESS", "SUCCESS");
