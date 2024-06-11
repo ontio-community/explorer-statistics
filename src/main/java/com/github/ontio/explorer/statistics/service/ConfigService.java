@@ -101,8 +101,8 @@ public class ConfigService {
             nodeInfoOffChain.setOntId("");
             if (status == 1 || status == 2) {
                 nodeInfoOffChain.setNodeType(status);
-            } else if (status == 3) {
-                // 3为共识节点退出
+            } else if (status == 3 || status == 5) {
+                // 3为共识节点退出,5为黑名单,一般只会拉黑共识
                 nodeInfoOffChain.setNodeType(2);
             } else {
                 nodeInfoOffChain.setNodeType(1);
@@ -160,8 +160,8 @@ public class ConfigService {
         nodeInfoOffChain.setAddress(address);
         if (status == 1 || status == 2) {
             nodeInfoOffChain.setNodeType(status);
-        } else if (status == 3) {
-            // 3为共识节点退出
+        } else if (status == 3 || status == 5) {
+            // 3为共识节点退出,5为黑名单,一般只会拉黑共识
             nodeInfoOffChain.setNodeType(2);
         } else {
             nodeInfoOffChain.setNodeType(1);
@@ -224,8 +224,8 @@ public class ConfigService {
         nodeInfoOffChain.setAddress(address);
         if (status == 1 || status == 2) {
             nodeInfoOffChain.setNodeType(status);
-        } else if (status == 3) {
-            // 3为共识节点退出
+        } else if (status == 3 || status == 5) {
+            // 3为共识节点退出,5为黑名单,一般只会拉黑共识
             nodeInfoOffChain.setNodeType(2);
         } else {
             nodeInfoOffChain.setNodeType(1);

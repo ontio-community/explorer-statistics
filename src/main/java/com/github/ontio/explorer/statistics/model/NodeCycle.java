@@ -32,6 +32,7 @@ public class NodeCycle {
     @Column(name = "name")
     private String name;
 
+    // 0-新注册, 1-正常运行, 2-退出状态 3-其他, 包括黑名单状态的节点类型
     @Column(name = "status")
     private Integer status;
 
