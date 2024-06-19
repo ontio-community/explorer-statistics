@@ -49,6 +49,7 @@ public class RankingSourceProducer {
 			log.warn("no new tx detail found after {}", new Date(beginTxTime * 1000L));
 			return;
 		}
+		beginBlockHeight--;
 		Integer endBlockHeight = txDetailMapper.findLastBlockHeightBeforeTxTime(endTxTime);
 
 		try {

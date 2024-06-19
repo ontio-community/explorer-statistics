@@ -45,6 +45,9 @@ public class CompositeRanking implements Ranking {
         if (context.isOep4Contract(tokenContractHash)) {
             getTokenRanking(tokenContractHash).rank(transactionInfo);
         }
+        if (context.isOrc20Contract(tokenContractHash)) {
+            getTokenRanking(tokenContractHash).rank(transactionInfo);
+        }
     }
 
     private AddressRanking getAddressRanking(String address) {
