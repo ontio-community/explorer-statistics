@@ -895,10 +895,20 @@ public class ConsensusNodeService {
         HashMap<String, BigDecimal> mapOfInspire = new HashMap<>();
         Integer cycleNum = nodeCycleList.get(0).getCycle();
         NodeOverviewHistory nodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(cycleNum);
+        int roundEndBlock = nodeOverviewHistory.getRndEndBlk().intValue();
         // overview表未更新
         if (nodeOverviewHistory.getRndEndTime() == null) {
+            GovernanceView view = ontSdkService.getGovernanceView();
+            if (view != null) {
+                int roundStartBlock = view.height;
+                if (roundEndBlock != roundStartBlock - 1) {
+                    nodeOverviewHistory.setRndEndBlk((long) (roundStartBlock - 1));
+                }
+            }
+
             Integer rndEndBlockTime = ontSdkService.getBlockTimeByHeight(nodeOverviewHistory.getRndEndBlk().intValue());
             nodeOverviewHistory.setRndEndTime(rndEndBlockTime);
+            nodeOverviewHistoryMapper.updateByPrimaryKeySelective(nodeOverviewHistory);
         }
         List<NodeCycle> consensusNodes = new ArrayList<>();
         List<NodeCycle> candidateNodes = new ArrayList<>();
