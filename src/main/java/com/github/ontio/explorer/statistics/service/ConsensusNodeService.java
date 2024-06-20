@@ -766,7 +766,7 @@ public class ConsensusNodeService {
             nodeCycle.setName(item.getName());
             Integer nodeType = item.getStatus();
             nodeCycle.setNodeType(nodeType);
-            // 节点变更状态 0新注册, 1 正常运行, 2退出状态 3 其他, 包括黑名单状态的节点类型
+            // nodeCycle节点状态:0-新注册, 1-正常运行, 2-退出状态 3-其他, 包括黑名单状态的节点类型
             if (nodeType == 0) {
                 nodeCycle.setStatus(0);
             } else if (nodeType == 1 || nodeType == 2) {
@@ -842,7 +842,7 @@ public class ConsensusNodeService {
             // 与历史数据进行比较判断是否是新注册的状态
             Integer nodeType = item.getStatus();
             nodeCycle.setNodeType(nodeType);
-            // 节点变更状态 0新注册, 1 正常运行, 2退出状态 3 其他, 包括黑名单状态的节点类型
+            // nodeCycle节点状态:0-新注册, 1-正常运行, 2-退出状态 3-其他, 包括黑名单状态的节点类型
             if (lastPublicKeys.contains(publicKey)) {
                 // 上次有这个数据, 根据上次的数据类型进行判断, list集合为有序的
                 if (nodeType == 1 || nodeType == 2) {
@@ -895,10 +895,20 @@ public class ConsensusNodeService {
         HashMap<String, BigDecimal> mapOfInspire = new HashMap<>();
         Integer cycleNum = nodeCycleList.get(0).getCycle();
         NodeOverviewHistory nodeOverviewHistory = nodeOverviewHistoryMapper.queryNodeDetailByCycle(cycleNum);
+        int roundEndBlock = nodeOverviewHistory.getRndEndBlk().intValue();
         // overview表未更新
         if (nodeOverviewHistory.getRndEndTime() == null) {
+            GovernanceView view = ontSdkService.getGovernanceView();
+            if (view != null) {
+                int roundStartBlock = view.height;
+                if (roundEndBlock != roundStartBlock - 1) {
+                    nodeOverviewHistory.setRndEndBlk((long) (roundStartBlock - 1));
+                }
+            }
+
             Integer rndEndBlockTime = ontSdkService.getBlockTimeByHeight(nodeOverviewHistory.getRndEndBlk().intValue());
             nodeOverviewHistory.setRndEndTime(rndEndBlockTime);
+            nodeOverviewHistoryMapper.updateByPrimaryKeySelective(nodeOverviewHistory);
         }
         List<NodeCycle> consensusNodes = new ArrayList<>();
         List<NodeCycle> candidateNodes = new ArrayList<>();
