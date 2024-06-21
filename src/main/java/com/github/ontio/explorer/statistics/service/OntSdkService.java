@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -150,17 +151,17 @@ public class OntSdkService {
             Configuration preConfiguration = getPreConfiguration();
             return preConfiguration.K;
         } catch (Exception e) {
-            log.warn("Getting authorize info failed: {}", e.getMessage());
+            log.warn("getPreConsensusCount failed: {}", e.getMessage());
             switchSyncNode();
-            log.info("Getting authorize info again");
+            log.info("getPreConsensusCount again");
             return getPreConsensusCount();
         }
     }
 
     public Configuration getPreConfiguration() throws Exception {
         String res = sdk.getConnect().getStorage(Helper.reverse(contractAddress), Helper.toHexString("preConfig".getBytes()));
-        if (res == null) {
-            return null;
+        if (!StringUtils.hasLength(res)) {
+            res = sdk.getConnect().getStorage(Helper.reverse(contractAddress), Helper.toHexString("vbftConfig".getBytes()));
         }
         Configuration configuration = new Configuration();
         ByteArrayInputStream in = new ByteArrayInputStream(Helper.hexToBytes(res));
