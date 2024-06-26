@@ -166,8 +166,13 @@ public class ConfigService {
         } else {
             nodeInfoOffChain.setNodeType(1);
         }
-        String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
+        String name = nodeInfoOffChain.getName();
         if (!StringUtils.hasLength(name)) {
+            name = "Node_" + nodePublicKey.substring(0, 6);
+            nodeInfoOffChain.setName(name);
+        }
+        NodeInfoOffChain existNodeInfo = nodeInfoOffChainMapper.selectByPrimaryKey(nodePublicKey);
+        if (existNodeInfo == null) {
             // insert
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
