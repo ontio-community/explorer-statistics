@@ -892,6 +892,7 @@ public class ConsensusNodeService {
             nodeCycleList.add(nodeCycle);
         });
         nodeCycleMapper.batchSave(nodeCycleList);
+        updateNodeState();
     }
 
 
