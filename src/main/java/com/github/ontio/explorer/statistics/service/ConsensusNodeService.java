@@ -79,6 +79,8 @@ public class ConsensusNodeService {
 
     private BlockMapper blockMapper;
 
+    private BadNodeMapper badNodeMapper;
+
     @Autowired
     public ConsensusNodeService(ParamsConfig paramsConfig,
                                 ObjectMapper objectMapper,
@@ -95,7 +97,8 @@ public class ConsensusNodeService {
                                 InspireCalculationParamsMapper inspireCalculationParamsMapper,
                                 TxEventLogMapper txEventLogMapper,
                                 NodeCycleMapper nodeCycleMapper,
-                                BlockMapper blockMapper) {
+                                BlockMapper blockMapper,
+                                BadNodeMapper badNodeMapper) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -112,6 +115,7 @@ public class ConsensusNodeService {
         this.txEventLogMapper = txEventLogMapper;
         this.nodeCycleMapper = nodeCycleMapper;
         this.blockMapper = blockMapper;
+        this.badNodeMapper = badNodeMapper;
     }
 
     public void updateBlockCountToNextRound() {
@@ -888,6 +892,7 @@ public class ConsensusNodeService {
             nodeCycleList.add(nodeCycle);
         });
         nodeCycleMapper.batchSave(nodeCycleList);
+        updateNodeState();
     }
 
 
@@ -1076,10 +1081,18 @@ public class ConsensusNodeService {
             Example example = new Example(NodeInfoOffChain.class);
             example.createCriteria().andEqualTo("publicKey", publicKey);
             NodeInfoOffChain entity = nodeInfoOffChainMapper.selectOneByExample(example);
+            Integer badActorBefore = entity.getBadActor();
             entity.setFeeSharingRatio(stable);
             entity.setBadActor(badActor);
             entity.setRisky(risky);
             nodeInfoOffChainMapper.updateByPrimaryKeySelective(entity);
+
+            if (badActor == 1 && badActorBefore == 0) {
+                BadNode badNode = new BadNode();
+                badNode.setPublicKey(publicKey);
+                badNode.setCycle(currentCycle);
+                badNodeMapper.insertSelective(badNode);
+            }
         }
     }
 }
