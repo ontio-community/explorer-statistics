@@ -1090,6 +1090,7 @@ public class ConsensusNodeService {
             if (badActor == 1 && badActorBefore == 0) {
                 BadNode badNode = new BadNode();
                 badNode.setPublicKey(publicKey);
+                badNode.setName(entity.getName());
                 badNode.setCycle(currentCycle);
                 badNodeMapper.insertSelective(badNode);
             }
