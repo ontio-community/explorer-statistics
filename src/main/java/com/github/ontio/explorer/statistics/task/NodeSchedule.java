@@ -120,17 +120,6 @@ public class NodeSchedule {
         }
     }
 
-    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-round-left-time}")
-    public void updateRoundLeftTime() {
-        try {
-            log.info("update node round left time begin");
-            consensusNodeService.updateLeftRoundTime();
-            log.info("update node round left time end... ");
-        } catch (Exception e) {
-            log.warn("update node round left time failed: {}", e);
-        }
-    }
-
     @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-stable-node}")
     public void updateStableNode() {
         try {

@@ -30,6 +30,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import tk.mybatis.mapper.entity.Example;
@@ -118,6 +119,7 @@ public class ConsensusNodeService {
         this.badNodeMapper = badNodeMapper;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void updateBlockCountToNextRound() {
         GovernanceView view = ontSdkService.getGovernanceView();
         if (view == null) {
@@ -131,14 +133,11 @@ public class ConsensusNodeService {
         if (blockCntToNxtRound < 0) {
             return;
         }
-        try {
-            nodeOverviewMapper.updateBlkCntToNxtRnd(blockCntToNxtRound);
-            log.info("Updating block count to next round with value {}", blockCntToNxtRound);
-        } catch (Exception e) {
-            log.warn("Updating block count to next round with value {} failed: {}", blockCntToNxtRound, e.getMessage());
-        }
+        nodeOverviewMapper.updateBlkCntToNxtRnd(blockCntToNxtRound);
         // update node round history
         updateBlkRndHistory(roundStartBlock, stakingChangeCount);
+        updateLeftRoundTime(blockCntToNxtRound);
+        log.info("Updating block count to next round with value {}", blockCntToNxtRound);
     }
 
     private void updateBlkRndHistory(long roundStartBlock, int stakingChangeCount) {
@@ -964,15 +963,14 @@ public class ConsensusNodeService {
     }
 
 
-    public void updateLeftRoundTime() {
-        Long leftBlockHeight = nodeOverviewMapper.selectBlkCountToNxtRnd();
+    public void updateLeftRoundTime(long leftBlockHeight) {
         Integer currentRound = nodeOverviewHistoryMapper.getCurrentRound();
 
-        Block blockCurrent = blockMapper.selectMaxBlock();
-        Integer currentBlockHeight = blockCurrent.getBlockHeight();
-        Block blockBefore = blockMapper.selectOneBlockByHeight(currentBlockHeight - Constants.RECENT_BLOCK_VELOCITY.intValue());
+        int currentBlockHeight = ontSdkService.getBlockHeight();
+        int currentBlockTime = ontSdkService.getBlockTimeByHeight(currentBlockHeight);
+        int beforeBlockTime = ontSdkService.getBlockTimeByHeight(currentBlockHeight - Constants.RECENT_BLOCK_VELOCITY.intValue());
 
-        int costTime = blockCurrent.getBlockTime() - blockBefore.getBlockTime();
+        int costTime = currentBlockTime - beforeBlockTime;
 
         BigDecimal velocity = (Constants.RECENT_BLOCK_VELOCITY).divide(new BigDecimal(costTime), 6, RoundingMode.HALF_UP);
 
