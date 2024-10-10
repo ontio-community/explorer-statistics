@@ -2,9 +2,8 @@ package com.github.ontio.explorer.statistics;
 
 import com.github.ontio.explorer.statistics.model.NodeInfoOnChain;
 import com.github.ontio.explorer.statistics.service.ConsensusNodeService;
-import com.github.ontio.explorer.statistics.task.NodeSchedule;
 import com.github.ontio.explorer.statistics.task.DailyInfoSchedule;
-import org.junit.Ignore;
+import com.github.ontio.explorer.statistics.task.NodeSchedule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +13,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.ArrayList;
 import java.util.List;
 
-//@Ignore
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class ExplorerStatisticsApplicationTests {
@@ -49,7 +47,7 @@ public class ExplorerStatisticsApplicationTests {
         for (int i = 0; i < 5; i++) {
             NodeInfoOnChain nodeInfoOnChain = new NodeInfoOnChain();
             nodeInfoOnChain.setAddress("testSyncNodeInfoOffChain");
-            nodeInfoOnChain.setPublicKey("ppppppuuuuuuubbbbbbbkkkkkkk" + i);
+            nodeInfoOnChain.setPublicKey("publicKey:" + i);
             nodeInfoOnChain.setName("name" + i);
             nodeInfoOnChain.setNodeRank(i);
             nodeInfoOnChain.setCurrentStake(0L);
