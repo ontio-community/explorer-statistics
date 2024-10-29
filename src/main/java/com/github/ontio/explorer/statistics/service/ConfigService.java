@@ -166,16 +166,39 @@ public class ConfigService {
         } else {
             nodeInfoOffChain.setNodeType(1);
         }
+
         String name = nodeInfoOffChain.getName();
         if (!StringUtils.hasLength(name)) {
             name = "Node_" + nodePublicKey.substring(0, 6);
             nodeInfoOffChain.setName(name);
         }
+
+        boolean forbidEditingName = paramsConfig.getForbidNodes().contains(nodePublicKey.toLowerCase());
         NodeInfoOffChain existNodeInfo = nodeInfoOffChainMapper.selectByPrimaryKey(nodePublicKey);
         if (existNodeInfo == null) {
             // insert
+            if (forbidEditingName) {
+                name = "Node_" + nodePublicKey.substring(0, 6);
+                nodeInfoOffChain.setName(name);
+                nodeInfoOffChain.setRegion("");
+                nodeInfoOffChain.setIntroduction("");
+            }
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
+            if (forbidEditingName) {
+                String oldName = existNodeInfo.getName();
+                String oldRegion = existNodeInfo.getRegion();
+                String oldIntroduction = existNodeInfo.getIntroduction();
+                if (!oldName.equals(name)) {
+                    return new Response(61004, "Unable to edit node name temporarily", "");
+                }
+                if (!oldRegion.equals(nodeInfoOffChain.getRegion())) {
+                    return new Response(61004, "Unable to edit region temporarily", "");
+                }
+                if (!oldIntroduction.equals(nodeInfoOffChain.getIntroduction())) {
+                    return new Response(61004, "Unable to edit description temporarily", "");
+                }
+            }
             // update
             nodeInfoOffChain.setVerification(null);
             nodeInfoOffChain.setFeeSharingRatio(null);
@@ -235,11 +258,39 @@ public class ConfigService {
         } else {
             nodeInfoOffChain.setNodeType(1);
         }
-        String name = nodeInfoOffChainMapper.selectNameByPublicKey(nodePublicKey);
+
+        String name = nodeInfoOffChain.getName();
         if (!StringUtils.hasLength(name)) {
+            name = "Node_" + nodePublicKey.substring(0, 6);
+            nodeInfoOffChain.setName(name);
+        }
+
+        boolean forbidEditingName = paramsConfig.getForbidNodes().contains(nodePublicKey.toLowerCase());
+        NodeInfoOffChain existNodeInfo = nodeInfoOffChainMapper.selectByPrimaryKey(nodePublicKey);
+        if (existNodeInfo == null) {
             // insert
+            if (forbidEditingName) {
+                name = "Node_" + nodePublicKey.substring(0, 6);
+                nodeInfoOffChain.setName(name);
+                nodeInfoOffChain.setRegion("");
+                nodeInfoOffChain.setIntroduction("");
+            }
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
+            if (forbidEditingName) {
+                String oldName = existNodeInfo.getName();
+                String oldRegion = existNodeInfo.getRegion();
+                String oldIntroduction = existNodeInfo.getIntroduction();
+                if (!oldName.equals(name)) {
+                    return new Response(61004, "Unable to edit node name temporarily", "");
+                }
+                if (!oldRegion.equals(nodeInfoOffChain.getRegion())) {
+                    return new Response(61004, "Unable to edit region temporarily", "");
+                }
+                if (!oldIntroduction.equals(nodeInfoOffChain.getIntroduction())) {
+                    return new Response(61004, "Unable to edit description temporarily", "");
+                }
+            }
             // update
             nodeInfoOffChain.setVerification(null);
             nodeInfoOffChain.setFeeSharingRatio(null);
