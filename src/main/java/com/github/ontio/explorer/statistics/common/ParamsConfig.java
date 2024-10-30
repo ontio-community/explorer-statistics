@@ -22,8 +22,6 @@ public class ParamsConfig {
 
     private List<String> nodeFoundationPublicKeys = new ArrayList<>();
 
-    private List<String> forbidNodes = new ArrayList<>();
-
     private String consensusNodeDetailUrl;
 
     private String nodeMapUrl;

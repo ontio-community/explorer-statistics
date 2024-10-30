@@ -10,9 +10,11 @@ import com.github.ontio.crypto.Digest;
 import com.github.ontio.explorer.statistics.common.ParamsConfig;
 import com.github.ontio.explorer.statistics.common.Response;
 import com.github.ontio.explorer.statistics.mapper.ConfigMapper;
+import com.github.ontio.explorer.statistics.mapper.ForbidEditNodeMapper;
 import com.github.ontio.explorer.statistics.mapper.NodeInfoOffChainMapper;
 import com.github.ontio.explorer.statistics.mapper.NodeInfoOnChainMapper;
 import com.github.ontio.explorer.statistics.model.Config;
+import com.github.ontio.explorer.statistics.model.ForbidEditNode;
 import com.github.ontio.explorer.statistics.model.NodeInfoOffChain;
 import com.github.ontio.explorer.statistics.model.NodeInfoOnChain;
 import com.github.ontio.explorer.statistics.model.dto.InsertOffChainNodeInfoDto;
@@ -40,6 +42,8 @@ public class ConfigService {
     private NodeInfoOnChainMapper nodeInfoOnChainMapper;
     @Autowired
     private ConsensusNodeService consensusNodeService;
+    @Autowired
+    private ForbidEditNodeMapper forbidEditNodeMapper;
 
 
     public String getMaxStakingChangeCount() {
@@ -173,7 +177,15 @@ public class ConfigService {
             nodeInfoOffChain.setName(name);
         }
 
-        boolean forbidEditingName = paramsConfig.getForbidNodes().contains(nodePublicKey.toLowerCase());
+        boolean forbidEditingName = false;
+        ForbidEditNode forbidEditNode = forbidEditNodeMapper.selectByPrimaryKey(nodePublicKey);
+        if (forbidEditNode != null) {
+            int currentCycle = ontSdkService.getGovernanceView().view;
+            Integer endCycle = forbidEditNode.getEndCycle();
+            if (currentCycle < endCycle) {
+                forbidEditingName = true;
+            }
+        }
         NodeInfoOffChain existNodeInfo = nodeInfoOffChainMapper.selectByPrimaryKey(nodePublicKey);
         if (existNodeInfo == null) {
             // insert
@@ -182,6 +194,7 @@ public class ConfigService {
                 nodeInfoOffChain.setName(name);
                 nodeInfoOffChain.setRegion("");
                 nodeInfoOffChain.setIntroduction("");
+                nodeInfoOffChain.setLogoUrl("");
             }
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
@@ -189,6 +202,7 @@ public class ConfigService {
                 String oldName = existNodeInfo.getName();
                 String oldRegion = existNodeInfo.getRegion();
                 String oldIntroduction = existNodeInfo.getIntroduction();
+                String oldLogoUrl = existNodeInfo.getLogoUrl();
                 if (!oldName.equals(name)) {
                     return new Response(61004, "Unable to edit node name temporarily", "");
                 }
@@ -197,6 +211,9 @@ public class ConfigService {
                 }
                 if (!oldIntroduction.equals(nodeInfoOffChain.getIntroduction())) {
                     return new Response(61004, "Unable to edit description temporarily", "");
+                }
+                if (!oldLogoUrl.equals(nodeInfoOffChain.getLogoUrl())) {
+                    return new Response(61004, "Unable to edit icon temporarily", "");
                 }
             }
             // update
@@ -265,7 +282,15 @@ public class ConfigService {
             nodeInfoOffChain.setName(name);
         }
 
-        boolean forbidEditingName = paramsConfig.getForbidNodes().contains(nodePublicKey.toLowerCase());
+        boolean forbidEditingName = false;
+        ForbidEditNode forbidEditNode = forbidEditNodeMapper.selectByPrimaryKey(nodePublicKey);
+        if (forbidEditNode != null) {
+            int currentCycle = ontSdkService.getGovernanceView().view;
+            Integer endCycle = forbidEditNode.getEndCycle();
+            if (currentCycle < endCycle) {
+                forbidEditingName = true;
+            }
+        }
         NodeInfoOffChain existNodeInfo = nodeInfoOffChainMapper.selectByPrimaryKey(nodePublicKey);
         if (existNodeInfo == null) {
             // insert
@@ -274,6 +299,7 @@ public class ConfigService {
                 nodeInfoOffChain.setName(name);
                 nodeInfoOffChain.setRegion("");
                 nodeInfoOffChain.setIntroduction("");
+                nodeInfoOffChain.setLogoUrl("");
             }
             nodeInfoOffChainMapper.insertSelective(nodeInfoOffChain);
         } else {
@@ -281,6 +307,7 @@ public class ConfigService {
                 String oldName = existNodeInfo.getName();
                 String oldRegion = existNodeInfo.getRegion();
                 String oldIntroduction = existNodeInfo.getIntroduction();
+                String oldLogoUrl = existNodeInfo.getLogoUrl();
                 if (!oldName.equals(name)) {
                     return new Response(61004, "Unable to edit node name temporarily", "");
                 }
@@ -289,6 +316,9 @@ public class ConfigService {
                 }
                 if (!oldIntroduction.equals(nodeInfoOffChain.getIntroduction())) {
                     return new Response(61004, "Unable to edit description temporarily", "");
+                }
+                if (!oldLogoUrl.equals(nodeInfoOffChain.getLogoUrl())) {
+                    return new Response(61004, "Unable to edit icon temporarily", "");
                 }
             }
             // update
