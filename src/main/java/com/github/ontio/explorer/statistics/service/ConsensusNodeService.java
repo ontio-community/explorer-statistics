@@ -41,10 +41,7 @@ import java.math.RoundingMode;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -1113,8 +1110,18 @@ public class ConsensusNodeService {
     public void synchronizeIncomeInfo() {
         int view = ontSdkService.getGovernanceView().view;
         int maxIncomeCycle = governanceMapper.getMaxIncomeCycle();
-        if (view > maxIncomeCycle) {
-            for (int i = maxIncomeCycle + 1; i < view; i++) {
+        if (maxIncomeCycle == 0) {
+            IncomeInfo initData = new IncomeInfo();
+            initData.setPeerPubKey("init");
+            initData.setAddress("init");
+            initData.setOngIncome("0");
+            initData.setStakingPos(0L);
+            governanceMapper.saveIncomeInfos(Collections.singletonList(initData), view - 1);
+            return;
+        }
+        int latestInfoCycle = maxIncomeCycle + 1;
+        if (view > latestInfoCycle) {
+            for (int i = latestInfoCycle; i < view; i++) {
                 Path incomeInfoPath = FileSystems.getDefault().getPath(String.format(paramsConfig.getIncomeInfoFilePath(), i));
                 String content = null;
                 try {
@@ -1127,7 +1134,7 @@ public class ConsensusNodeService {
                     List<IncomeInfo> infos = jsonObject.getJSONArray("data").toJavaList(IncomeInfo.class);
                     if (infos != null && !infos.isEmpty()) {
                         for (IncomeInfo info : infos) {
-                            String ongIncome = new BigDecimal(info.getOngIncome()).divide(Constants.NINE_BIT_DECIMAL).stripTrailingZeros().toPlainString();
+                            String ongIncome = new BigDecimal(info.getOngIncome()).divide(Constants.NINE_BIT_DECIMAL, RoundingMode.DOWN).stripTrailingZeros().toPlainString();
                             info.setOngIncome(ongIncome);
                         }
                         governanceMapper.saveIncomeInfos(infos, i);
