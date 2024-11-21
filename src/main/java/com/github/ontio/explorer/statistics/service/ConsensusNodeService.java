@@ -38,6 +38,9 @@ import tk.mybatis.mapper.entity.Example;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -78,9 +81,9 @@ public class ConsensusNodeService {
 
     private NodeCycleMapper nodeCycleMapper;
 
-    private BlockMapper blockMapper;
-
     private BadNodeMapper badNodeMapper;
+
+    private GovernanceMapper governanceMapper;
 
     @Autowired
     public ConsensusNodeService(ParamsConfig paramsConfig,
@@ -98,8 +101,8 @@ public class ConsensusNodeService {
                                 InspireCalculationParamsMapper inspireCalculationParamsMapper,
                                 TxEventLogMapper txEventLogMapper,
                                 NodeCycleMapper nodeCycleMapper,
-                                BlockMapper blockMapper,
-                                BadNodeMapper badNodeMapper) {
+                                BadNodeMapper badNodeMapper,
+                                GovernanceMapper governanceMapper) {
         this.paramsConfig = paramsConfig;
         this.ontSdkService = ontSdkService;
         this.objectMapper = objectMapper;
@@ -115,8 +118,8 @@ public class ConsensusNodeService {
         this.inspireCalculationParamsMapper = inspireCalculationParamsMapper;
         this.txEventLogMapper = txEventLogMapper;
         this.nodeCycleMapper = nodeCycleMapper;
-        this.blockMapper = blockMapper;
         this.badNodeMapper = badNodeMapper;
+        this.governanceMapper = governanceMapper;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -1091,6 +1094,45 @@ public class ConsensusNodeService {
                 badNode.setName(entity.getName());
                 badNode.setCycle(currentCycle);
                 badNodeMapper.insertSelective(badNode);
+            }
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void synchronizeGovernanceInfo() throws IOException {
+        Path path = FileSystems.getDefault().getPath(paramsConfig.getGovernanceInfoFilePath());
+        String content = new String(Files.readAllBytes(path));
+        List<GovernanceInfo> infos = objectMapper.readValue(content, new TypeReference<List<GovernanceInfo>>() {
+        });
+        if (infos != null && !infos.isEmpty()) {
+            governanceMapper.removeGovernanceInfos();
+            governanceMapper.saveGovernanceInfos(infos);
+        }
+    }
+
+    public void synchronizeIncomeInfo() {
+        int view = ontSdkService.getGovernanceView().view;
+        int maxIncomeCycle = governanceMapper.getMaxIncomeCycle();
+        if (view > maxIncomeCycle) {
+            for (int i = maxIncomeCycle + 1; i < view; i++) {
+                Path incomeInfoPath = FileSystems.getDefault().getPath(String.format(paramsConfig.getIncomeInfoFilePath(), i));
+                String content = null;
+                try {
+                    content = new String(Files.readAllBytes(incomeInfoPath));
+                } catch (Exception e) {
+                    log.error("incomeInfo not found:{}", incomeInfoPath);
+                }
+                if (StringUtils.hasLength(content)) {
+                    JSONObject jsonObject = JSONObject.parseObject(content);
+                    List<IncomeInfo> infos = jsonObject.getJSONArray("data").toJavaList(IncomeInfo.class);
+                    if (infos != null && !infos.isEmpty()) {
+                        for (IncomeInfo info : infos) {
+                            String ongIncome = new BigDecimal(info.getOngIncome()).divide(Constants.NINE_BIT_DECIMAL).stripTrailingZeros().toPlainString();
+                            info.setOngIncome(ongIncome);
+                        }
+                        governanceMapper.saveIncomeInfos(infos, i);
+                    }
+                }
             }
         }
     }

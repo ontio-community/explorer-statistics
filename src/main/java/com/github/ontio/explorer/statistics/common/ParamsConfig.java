@@ -54,6 +54,10 @@ public class ParamsConfig {
 
     private String cmcApiKey;
 
+    private String governanceInfoFilePath;
+
+    private String incomeInfoFilePath;
+
     public interface Field {
 
         String maxStakingChangeCount = "maxStakingChangeCount";

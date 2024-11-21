@@ -73,6 +73,8 @@ config:
     - 03c8f63775536eb420c96228cdccc9de7d80e87f1b562a6eb93c0838064350aa53
   evm-active-block: 16206729
   cmc-api-key: 1
+  governance-info-file-path: authorizePeers.json
+  income-info-file-path: nodeCycleInComeInfo_%d.json
 
 node-schedule-task:
   update-on-chain-info: 300000
@@ -83,6 +85,8 @@ node-schedule-task:
   update-cycle-time: 30000
   update-round-left-time: 300000
   update-stable-node: 3600000
+  update-governance-info: 600000
+  update-income-info: 30000
 
 # mainnet config:
 #node-schedule-task:

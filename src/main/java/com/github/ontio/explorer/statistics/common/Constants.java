@@ -32,6 +32,8 @@ public class Constants {
 
     public static final String EVM_PREFIX = "0x";
 
+    public static final BigDecimal NINE_BIT_DECIMAL = BigDecimal.TEN.pow(9);
+
     public static final BigDecimal ONG_DECIMAL = new BigDecimal("1000000000000000000");
 
     public static final BigDecimal MAX_VALUE = new BigDecimal("99999999999999999999");

@@ -127,8 +127,29 @@ public class NodeSchedule {
             consensusNodeService.updateNodeState();
             log.info("update stable node status task  end... ");
         } catch (Exception e) {
-            log.warn("update stable node status task  failed: {}", e);
+            log.warn("update stable node status task  failed...", e);
         }
     }
 
+    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-governance-info}")
+    public void synchronizeGovernanceInfo() {
+        try {
+            log.info("synchronize governance info task begin...");
+            consensusNodeService.synchronizeGovernanceInfo();
+            log.info("synchronize governance info task finished...");
+        } catch (Exception e) {
+            log.error("synchronize governance info task failed...", e);
+        }
+    }
+
+    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-income-info}")
+    public void synchronizeIncomeInfo() {
+        try {
+            log.info("synchronize income info task begin...");
+            consensusNodeService.synchronizeIncomeInfo();
+            log.info("synchronize income info task finished...");
+        } catch (Exception e) {
+            log.error("synchronize income info task failed...", e);
+        }
+    }
 }
