@@ -1134,7 +1134,7 @@ public class ConsensusNodeService {
                     List<IncomeInfo> infos = jsonObject.getJSONArray("data").toJavaList(IncomeInfo.class);
                     if (infos != null && !infos.isEmpty()) {
                         for (IncomeInfo info : infos) {
-                            String ongIncome = new BigDecimal(info.getOngIncome()).divide(Constants.NINE_BIT_DECIMAL, RoundingMode.DOWN).stripTrailingZeros().toPlainString();
+                            String ongIncome = new BigDecimal(info.getOngIncome()).divide(Constants.NINE_BIT_DECIMAL, 9, RoundingMode.DOWN).stripTrailingZeros().toPlainString();
                             info.setOngIncome(ongIncome);
                         }
                         governanceMapper.saveIncomeInfos(infos, i);
