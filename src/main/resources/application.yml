@@ -75,6 +75,7 @@ config:
   cmc-api-key: 1
   governance-info-file-path: authorizePeers.json
   income-info-file-path: nodeCycleInComeInfo_%d.json
+  staking-info-file-path: nodeStakingInfo_%d.json
 
 node-schedule-task:
   update-on-chain-info: 300000
@@ -87,6 +88,7 @@ node-schedule-task:
   update-stable-node: 3600000
   update-governance-info: 600000
   update-income-info: 30000
+  update-staking-info: 30000
 
 # mainnet config:
 #node-schedule-task:

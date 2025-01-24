@@ -37,6 +37,10 @@
         SELECT IFNULL(MAX(cycle),0) FROM tbl_income_info
     </select>
 
+    <select id="getIncomeInfoCount" resultType="Integer">
+        SELECT COUNT(1) FROM tbl_income_info
+    </select>
+
     <insert id="saveIncomeInfos">
         INSERT INTO tbl_income_info
         (
@@ -44,6 +48,10 @@
         address,
         ong_income,
         staking_pos,
+        withdraw_pos,
+        new_pos,
+        next_withdrawable_pos,
+        peer,
         cycle
         )
         VALUES
@@ -53,6 +61,67 @@
             #{info.address},
             #{info.ongIncome},
             #{info.stakingPos},
+            #{info.withdrawPos},
+            #{info.newPos},
+            #{info.withdrawUnfreezePos},
+            #{info.peer},
+            #{cycle}
+            )
+        </foreach>
+    </insert>
+
+    <select id="selectWithdrawableInfo" resultType="com.github.ontio.explorer.statistics.model.IncomeInfo">
+        SELECT
+        peer_pub_key AS peerPubKey,
+        address,
+        peer
+        FROM tbl_income_info
+        WHERE next_withdrawable_pos > 0
+        AND cycle = #{cycle}
+    </select>
+
+    <select id="selectNewNodeInfo" resultType="com.github.ontio.explorer.statistics.model.IncomeInfo">
+        SELECT
+            a.peer_pub_key AS peerPubKey,
+            a.address,
+            a.staking_pos AS stakingPos,
+            a.peer
+        FROM tbl_income_info a
+        LEFT JOIN tbl_income_info b
+        ON a.address = b.address AND a.peer_pub_key = b.peer_pub_key AND a.cycle-1 = b.cycle
+        WHERE a.staking_pos > 0 AND b.staking_pos IS NULL AND a.cycle = #{cycle}
+    </select>
+
+    <select id="getMaxStakingInfoCycle" resultType="Integer">
+        SELECT IFNULL(MAX(cycle),0) FROM tbl_node_staking_info
+    </select>
+
+    <select id="getStakingInfoCountByCycle" resultType="Integer">
+        SELECT COUNT(1) FROM tbl_node_staking_info WHERE cycle = #{cycle}
+    </select>
+
+    <insert id="saveStakingInfos">
+        INSERT INTO tbl_node_staking_info
+        (
+        peer_pub_key,
+        address,
+        amount,
+        action,
+        node_status,
+        block_height,
+        tx_hash,
+        cycle
+        )
+        VALUES
+        <foreach collection="infos" item="info" separator=",">
+            (
+            #{info.peerPubKey},
+            #{info.address},
+            #{info.amount},
+            #{info.action},
+            #{info.nodeStatus},
+            #{info.blockHeight},
+            #{info.txHash},
             #{cycle}
             )
         </foreach>

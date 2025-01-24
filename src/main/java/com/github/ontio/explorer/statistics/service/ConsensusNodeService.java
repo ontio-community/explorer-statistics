@@ -1122,6 +1122,7 @@ public class ConsensusNodeService {
         int latestInfoCycle = maxIncomeCycle + 1;
         if (view > latestInfoCycle) {
             for (int i = latestInfoCycle; i < view; i++) {
+                int count = governanceMapper.getIncomeInfoCount();
                 Path incomeInfoPath = FileSystems.getDefault().getPath(String.format(paramsConfig.getIncomeInfoFilePath(), i));
                 String content = null;
                 try {
@@ -1133,11 +1134,88 @@ public class ConsensusNodeService {
                     JSONObject jsonObject = JSONObject.parseObject(content);
                     List<IncomeInfo> infos = jsonObject.getJSONArray("data").toJavaList(IncomeInfo.class);
                     if (infos != null && !infos.isEmpty()) {
+                        Set<String> pubKeyAddressSet = new HashSet<>();
                         for (IncomeInfo info : infos) {
                             String ongIncome = new BigDecimal(info.getOngIncome()).divide(Constants.NINE_BIT_DECIMAL, 9, RoundingMode.DOWN).stripTrailingZeros().toPlainString();
                             info.setOngIncome(ongIncome);
+                            String peerPubKey = info.getPeerPubKey();
+                            String address = info.getAddress();
+                            pubKeyAddressSet.add(String.format(Constants.CONCAT_STR, peerPubKey, address));
                         }
                         governanceMapper.saveIncomeInfos(infos, i);
+
+                        // 改判断后续可删除
+                        if (count > 1) {
+                            // 补充这周期新建节点的质押信息
+                            List<IncomeInfo> newNodeInfo = governanceMapper.selectNewNodeInfo(i);
+                            for (IncomeInfo info : newNodeInfo) {
+                                int peer = info.getPeer();
+                                Long stakingPos = info.getStakingPos();
+                                info.setOngIncome("0");
+                                info.setStakingPos(0L);
+                                info.setWithdrawPos(0L);
+                                info.setWithdrawUnfreezePos(0L);
+                                if (peer == 1) {
+                                    info.setNewPos(0L);
+                                } else {
+                                    info.setNewPos(stakingPos);
+                                }
+                            }
+                            if (!CollectionUtils.isEmpty(newNodeInfo)) {
+                                governanceMapper.saveIncomeInfos(newNodeInfo, i - 1);
+                            }
+                        }
+
+                        // 补充上周期数据中有这周期可以withdraw的,且已经withdraw了.此时这周期不会返回数据
+                        List<IncomeInfo> additionalInfos = new ArrayList<>();
+                        List<IncomeInfo> withdrawableInfo = governanceMapper.selectWithdrawableInfo(i - 1);
+                        for (IncomeInfo info : withdrawableInfo) {
+                            String peerPubKey = info.getPeerPubKey();
+                            String address = info.getAddress();
+                            boolean add = pubKeyAddressSet.add(String.format(Constants.CONCAT_STR, peerPubKey, address));
+                            if (add) {
+                                info.setOngIncome("0");
+                                info.setStakingPos(0L);
+                                info.setWithdrawPos(0L);
+                                info.setNewPos(0L);
+                                info.setWithdrawUnfreezePos(0L);
+                                additionalInfos.add(info);
+                            }
+                        }
+                        if (!CollectionUtils.isEmpty(additionalInfos)) {
+                            governanceMapper.saveIncomeInfos(additionalInfos, i);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void synchronizeStakingInfo() {
+        int view = ontSdkService.getGovernanceView().view;
+        int maxStakingInfoCycle = governanceMapper.getMaxStakingInfoCycle();
+
+        for (int i = maxStakingInfoCycle; i <= view; i++) {
+            Path stakingInfoPath = FileSystems.getDefault().getPath(String.format(paramsConfig.getStakingInfoFilePath(), i));
+            String content = null;
+            try {
+                content = new String(Files.readAllBytes(stakingInfoPath));
+            } catch (Exception e) {
+                log.error("stakingInfo not found:{}", stakingInfoPath);
+            }
+            if (StringUtils.hasLength(content)) {
+                JSONObject jsonObject = JSONObject.parseObject(content);
+                List<StakingInfo> infos = jsonObject.getJSONArray("data").toJavaList(StakingInfo.class);
+                if (infos != null && !infos.isEmpty()) {
+                    if (maxStakingInfoCycle == view) {
+                        int count = governanceMapper.getStakingInfoCountByCycle(view);
+                        int size = infos.size();
+                        if (size > count) {
+                            List<StakingInfo> appendInfos = infos.subList(count, size);
+                            governanceMapper.saveStakingInfos(appendInfos, i);
+                        }
+                    } else {
+                        governanceMapper.saveStakingInfos(infos, i);
                     }
                 }
             }

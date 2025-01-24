@@ -58,6 +58,8 @@ public class ParamsConfig {
 
     private String incomeInfoFilePath;
 
+    private String stakingInfoFilePath;
+
     public interface Field {
 
         String maxStakingChangeCount = "maxStakingChangeCount";

@@ -18,4 +18,15 @@ public class IncomeInfo {
 
     @JsonProperty("staking_pos")
     private Long stakingPos;
+
+    @JsonProperty("withdraw_pos")
+    private Long withdrawPos;
+
+    @JsonProperty("new_pos")
+    private Long newPos;
+
+    @JsonProperty("withdraw_unfreeze_pos")
+    private Long withdrawUnfreezePos;
+
+    private int peer;
 }
