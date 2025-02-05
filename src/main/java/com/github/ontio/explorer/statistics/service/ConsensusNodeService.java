@@ -15,6 +15,7 @@
 
 package com.github.ontio.explorer.statistics.service;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -1116,13 +1117,16 @@ public class ConsensusNodeService {
             initData.setAddress("init");
             initData.setOngIncome("0");
             initData.setStakingPos(0L);
-            governanceMapper.saveIncomeInfos(Collections.singletonList(initData), view - 1);
+            initData.setWithdrawPos(0L);
+            initData.setNewPos(0L);
+            initData.setWithdrawUnfreezePos(0L);
+            initData.setPeer(0);
+            governanceMapper.saveIncomeInfos(Collections.singletonList(initData), 1);
             return;
         }
         int latestInfoCycle = maxIncomeCycle + 1;
         if (view > latestInfoCycle) {
             for (int i = latestInfoCycle; i < view; i++) {
-                int count = governanceMapper.getIncomeInfoCount();
                 Path incomeInfoPath = FileSystems.getDefault().getPath(String.format(paramsConfig.getIncomeInfoFilePath(), i));
                 String content = null;
                 try {
@@ -1144,26 +1148,23 @@ public class ConsensusNodeService {
                         }
                         governanceMapper.saveIncomeInfos(infos, i);
 
-                        // 改判断后续可删除
-                        if (count > 1) {
-                            // 补充这周期新建节点的质押信息
-                            List<IncomeInfo> newNodeInfo = governanceMapper.selectNewNodeInfo(i);
-                            for (IncomeInfo info : newNodeInfo) {
-                                int peer = info.getPeer();
-                                Long stakingPos = info.getStakingPos();
-                                info.setOngIncome("0");
-                                info.setStakingPos(0L);
-                                info.setWithdrawPos(0L);
-                                info.setWithdrawUnfreezePos(0L);
-                                if (peer == 1) {
-                                    info.setNewPos(0L);
-                                } else {
-                                    info.setNewPos(stakingPos);
-                                }
+                        // 补充这周期新建节点的质押信息
+                        List<IncomeInfo> newNodeInfo = governanceMapper.selectNewNodeInfo(i);
+                        for (IncomeInfo info : newNodeInfo) {
+                            int peer = info.getPeer();
+                            Long stakingPos = info.getStakingPos();
+                            info.setOngIncome("0");
+                            info.setStakingPos(0L);
+                            info.setWithdrawPos(0L);
+                            info.setWithdrawUnfreezePos(0L);
+                            if (peer == 1) {
+                                info.setNewPos(0L);
+                            } else {
+                                info.setNewPos(stakingPos);
                             }
-                            if (!CollectionUtils.isEmpty(newNodeInfo)) {
-                                governanceMapper.saveIncomeInfos(newNodeInfo, i - 1);
-                            }
+                        }
+                        if (!CollectionUtils.isEmpty(newNodeInfo)) {
+                            governanceMapper.saveIncomeInfos(newNodeInfo, i - 1);
                         }
 
                         // 补充上周期数据中有这周期可以withdraw的,且已经withdraw了.此时这周期不会返回数据
@@ -1204,8 +1205,7 @@ public class ConsensusNodeService {
                 log.error("stakingInfo not found:{}", stakingInfoPath);
             }
             if (StringUtils.hasLength(content)) {
-                JSONObject jsonObject = JSONObject.parseObject(content);
-                List<StakingInfo> infos = jsonObject.getJSONArray("data").toJavaList(StakingInfo.class);
+                List<StakingInfo> infos = JSONArray.parseArray(content, StakingInfo.class);
                 if (infos != null && !infos.isEmpty()) {
                     if (maxStakingInfoCycle == view) {
                         int count = governanceMapper.getStakingInfoCountByCycle(view);
