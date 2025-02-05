@@ -153,14 +153,14 @@ public class NodeSchedule {
         }
     }
 
-//    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-staking-info}")
-//    public void synchronizeStakingInfo() {
-//        try {
-//            log.info("synchronize staking info task begin...");
-//            consensusNodeService.synchronizeStakingInfo();
-//            log.info("synchronize staking info task finished...");
-//        } catch (Exception e) {
-//            log.error("synchronize staking info task failed...", e);
-//        }
-//    }
+    @Scheduled(initialDelay = 5 * 1000, fixedDelayString = "${node-schedule-task.update-staking-info}")
+    public void synchronizeStakingInfo() {
+        try {
+            log.info("synchronize staking info task begin...");
+            consensusNodeService.synchronizeStakingInfo();
+            log.info("synchronize staking info task finished...");
+        } catch (Exception e) {
+            log.error("synchronize staking info task failed...", e);
+        }
+    }
 }
