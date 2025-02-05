@@ -54,4 +54,6 @@ public class Constants {
 
     // 地址数量统计排除00地址和07地址
     public static final List<String> EXCLUDE_ADDRESS_LIST = Arrays.asList("00", "AFmseVrdL9f9oyCzZefL9tG6UbvhPbdYzM", "0x0000000000000000000000000000000000000000", "AFmseVrdL9f9oyCzZefL9tG6UbviEH9ugK", "0x0000000000000000000000000000000000000007");
+
+    public static final String CONCAT_STR = "%s_%s";
 }

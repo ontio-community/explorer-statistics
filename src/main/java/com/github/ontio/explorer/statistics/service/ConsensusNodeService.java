@@ -1116,7 +1116,11 @@ public class ConsensusNodeService {
             initData.setAddress("init");
             initData.setOngIncome("0");
             initData.setStakingPos(0L);
-            governanceMapper.saveIncomeInfos(Collections.singletonList(initData), view - 1);
+            initData.setWithdrawPos(0L);
+            initData.setNewPos(0L);
+            initData.setWithdrawUnfreezePos(0L);
+            initData.setPeer(0);
+            governanceMapper.saveIncomeInfos(Collections.singletonList(initData), 1);
             return;
         }
         int latestInfoCycle = maxIncomeCycle + 1;
@@ -1133,11 +1137,54 @@ public class ConsensusNodeService {
                     JSONObject jsonObject = JSONObject.parseObject(content);
                     List<IncomeInfo> infos = jsonObject.getJSONArray("data").toJavaList(IncomeInfo.class);
                     if (infos != null && !infos.isEmpty()) {
+                        Set<String> pubKeyAddressSet = new HashSet<>();
                         for (IncomeInfo info : infos) {
                             String ongIncome = new BigDecimal(info.getOngIncome()).divide(Constants.NINE_BIT_DECIMAL, 9, RoundingMode.DOWN).stripTrailingZeros().toPlainString();
                             info.setOngIncome(ongIncome);
+                            String peerPubKey = info.getPeerPubKey();
+                            String address = info.getAddress();
+                            pubKeyAddressSet.add(String.format(Constants.CONCAT_STR, peerPubKey, address));
                         }
                         governanceMapper.saveIncomeInfos(infos, i);
+
+                        // 补充这周期新建节点的质押信息
+                        List<IncomeInfo> newNodeInfo = governanceMapper.selectNewNodeInfo(i);
+                        for (IncomeInfo info : newNodeInfo) {
+                            int peer = info.getPeer();
+                            Long stakingPos = info.getStakingPos();
+                            info.setOngIncome("0");
+                            info.setStakingPos(0L);
+                            info.setWithdrawPos(0L);
+                            info.setWithdrawUnfreezePos(0L);
+                            if (peer == 1) {
+                                info.setNewPos(0L);
+                            } else {
+                                info.setNewPos(stakingPos);
+                            }
+                        }
+                        if (!CollectionUtils.isEmpty(newNodeInfo)) {
+                            governanceMapper.saveIncomeInfos(newNodeInfo, i - 1);
+                        }
+
+                        // 补充上周期数据中有这周期可以withdraw的,且已经withdraw了.此时这周期不会返回数据
+                        List<IncomeInfo> additionalInfos = new ArrayList<>();
+                        List<IncomeInfo> withdrawableInfo = governanceMapper.selectWithdrawableInfo(i - 1);
+                        for (IncomeInfo info : withdrawableInfo) {
+                            String peerPubKey = info.getPeerPubKey();
+                            String address = info.getAddress();
+                            boolean add = pubKeyAddressSet.add(String.format(Constants.CONCAT_STR, peerPubKey, address));
+                            if (add) {
+                                info.setOngIncome("0");
+                                info.setStakingPos(0L);
+                                info.setWithdrawPos(0L);
+                                info.setNewPos(0L);
+                                info.setWithdrawUnfreezePos(0L);
+                                additionalInfos.add(info);
+                            }
+                        }
+                        if (!CollectionUtils.isEmpty(additionalInfos)) {
+                            governanceMapper.saveIncomeInfos(additionalInfos, i);
+                        }
                     }
                 }
             }
