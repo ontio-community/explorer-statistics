@@ -367,7 +367,7 @@ public class ConsensusNodeService {
             }
             node.setCurrentStake(currentPos.longValue());
             node.setProgress(progress.toPlainString() + "%");
-            node.setDetailUrl(paramsConfig.getConsensusNodeDetailUrl() + node.getPublicKey());
+            node.setDetailUrl(paramsConfig.getConsensusNodeDetailUrl() + node.getPublicKey() + "/" + node.getAddress() + "/balance");
             BigDecimal percent = new BigDecimal(node.getCurrentStake()).multiply(new BigDecimal(100)).divide(new BigDecimal(1000000000), 4, RoundingMode.HALF_UP);
             node.setCurrentStakePercentage(percent.toPlainString().concat("%"));
             nodes.set(i, node);
