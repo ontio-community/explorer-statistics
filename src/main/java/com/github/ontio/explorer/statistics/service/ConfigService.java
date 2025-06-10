@@ -140,7 +140,12 @@ public class ConfigService {
         byte[] nodeInfoBytes = Helper.hexToBytes(nodeInfo);
         boolean verify = ontSdkService.verifySignatureByPublicKey(stakePublicKey, nodeInfoBytes, signature);
         if (!verify) {
-            return new Response(62006, "Verify signature failed.", "");
+            // 尝试用ledger的签名方式验签
+            byte[] ontologyMessageHash = ontSdkService.getOntologyMessageHash(nodeInfoBytes);
+            verify = ontSdkService.verifySignatureByPublicKey(stakePublicKey, ontologyMessageHash, signature);
+            if (!verify) {
+                return new Response(62006, "Verify signature failed.", "");
+            }
         }
         String nodeInfoStr = new String(nodeInfoBytes, "UTF-8");
         NodeInfoOffChain nodeInfoOffChain = JSONObject.parseObject(nodeInfoStr, NodeInfoOffChain.class);
