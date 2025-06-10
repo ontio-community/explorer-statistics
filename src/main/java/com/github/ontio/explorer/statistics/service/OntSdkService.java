@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
@@ -139,6 +140,31 @@ public class OntSdkService {
         Account account = new Account(false, Helper.hexToBytes(publicKey));
         Boolean verify = account.verifySignature(origData, Helper.hexToBytes(signatureStr));
         return verify;
+    }
+
+    /**
+     * Ledger verify signature
+     *
+     * @param publicKey
+     * @param origData
+     * @param signatureStr
+     * @return
+     */
+    public static final String ONTOLOGY_MESSAGE_PREFIX = "\u0019Ontology Signed Message:\n";
+    public byte[] getOntologyMessagePrefix(int messageLength) {
+        return ONTOLOGY_MESSAGE_PREFIX
+                .concat(String.valueOf(messageLength))
+                .getBytes(StandardCharsets.UTF_8);
+    }
+
+    public byte[] getOntologyMessageHash(byte[] message) {
+        byte[] prefix = getOntologyMessagePrefix(message.length);
+
+        byte[] result = new byte[prefix.length + message.length];
+        System.arraycopy(prefix, 0, result, 0, prefix.length);
+        System.arraycopy(message, 0, result, prefix.length, message.length);
+
+        return result;
     }
 
     public String getPeerInfo(String publicKey) throws Exception {
