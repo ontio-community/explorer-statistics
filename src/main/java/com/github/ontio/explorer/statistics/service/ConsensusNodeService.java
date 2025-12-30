@@ -83,6 +83,8 @@ public class ConsensusNodeService {
 
     private GovernanceMapper governanceMapper;
 
+    private final BigDecimal eightyPercent = new BigDecimal("0.8");
+
     @Autowired
     public ConsensusNodeService(ParamsConfig paramsConfig,
                                 ObjectMapper objectMapper,
@@ -578,12 +580,14 @@ public class ConsensusNodeService {
             if (i < preConsensusCount) {
                 BigDecimal consensusInspire = consensusInspireMap.get(publicKey);
                 // 共识节点手续费和释放的 ONG
-                finalReleaseOng = getReleaseAndCommissionOng(consensusInspire, releaseOng, totalConsensusInspire);
-                finalCommission = getReleaseAndCommissionOng(consensusInspire, commission, totalConsensusInspire);
+                // 202512, 节点更新, 20%收益打到EOA地址做ONT/ONG流动性
+                finalReleaseOng = getReleaseAndCommissionOng(consensusInspire, releaseOng, totalConsensusInspire).multiply(eightyPercent);
+                finalCommission = getReleaseAndCommissionOng(consensusInspire, commission, totalConsensusInspire).multiply(eightyPercent);
             } else {
                 // 候选节点手续费和释放的 ONG
-                finalReleaseOng = getReleaseAndCommissionOng(currentStake, releaseOng, candidateTotalStake);
-                finalCommission = getReleaseAndCommissionOng(currentStake, commission, candidateTotalStake);
+                // 202512, 节点更新, 20%收益打到EOA地址做ONT/ONG流动性
+                finalReleaseOng = getReleaseAndCommissionOng(currentStake, releaseOng, candidateTotalStake).multiply(eightyPercent);
+                finalCommission = getReleaseAndCommissionOng(currentStake, commission, candidateTotalStake).multiply(eightyPercent);
             }
             // 20210801之后没有基金会收益
             if (nodeFoundationPublicKeys.contains(publicKey) && now < Constants.UTC_20210801) {
