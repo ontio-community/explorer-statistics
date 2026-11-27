@@ -1019,7 +1019,6 @@ public class ConsensusNodeService {
             if (cycleSize > 1) {
                 boolean checkNewNode = false;
                 boolean newNodeSetting = false;
-                List<Integer> cycleList = new ArrayList<>();
                 for (int i = 1; i <= cycleSize; i++) {
                     int nodeProportionT1_last;
                     int userProportionT1_last;
