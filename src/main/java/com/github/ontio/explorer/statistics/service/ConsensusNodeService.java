@@ -1076,6 +1076,19 @@ public class ConsensusNodeService {
                 if (badActor == 1 || risky == 1 || cycleSize < 5 || (currentNodeProportionT1Count + currentUserProportionT1Count < 80) || newNodeSetting) {
                     stable = 0;
                 }
+                if (stable == 1) {
+                    for (int i = 0; i < 4; i++) {
+                        Integer current = nodeCycleListByPublicKey.get(i).getCycle();
+                        Integer next = nodeCycleListByPublicKey.get(i + 1).getCycle();
+                        if (current == null || next == null) {
+                            stable = 0;
+                        } else {
+                            if (current - next != 1) {
+                                stable = 0;
+                            }
+                        }
+                    }
+                }
             } else {
                 stable = 0;
             }
